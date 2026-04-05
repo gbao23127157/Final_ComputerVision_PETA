@@ -46,7 +46,7 @@ def build_labels_file(images_dir, output_label_file):
     with open(output_label_file, "w") as f:
         f.write("\n".join(lines))
 
-    print(f"✅ Đã tạo labels.txt: {len(lines)} album, {len(class_names)} class")
+    print(f"Đã tạo labels.txt: {len(lines)} album, {len(class_names)} class")
     return class_to_idx
 
 
@@ -70,7 +70,7 @@ def load_labels_dict(label_file):
             parts = line.strip().split()
             if len(parts) >= 2:
                 labels[parts[0]] = int(parts[1])
-    print(f"✅ Đã tải {len(labels)} nhãn từ {label_file}")
+    print(f"Đã tải {len(labels)} nhãn từ {label_file}")
     return labels
 
 
@@ -103,7 +103,7 @@ def load_split(meta_dir, split="train"):
                 line = line.strip()
                 if "/" in line:
                     album_ids.add(line.split("/")[-1])
-        print(f"✅ Đọc {split}.txt: {len(album_ids)} album")
+        print(f"Đọc {split}.txt: {len(album_ids)} album")
 
     elif os.path.exists(json_file):
         with open(json_file) as f:
@@ -111,7 +111,7 @@ def load_split(meta_dir, split="train"):
         for albums in data.values():
             for aid in albums.keys():
                 album_ids.add(str(aid))
-        print(f"✅ Đọc {split}.json: {len(album_ids)} album")
+        print(f"Đọc {split}.json: {len(album_ids)} album")
 
     else:
         raise FileNotFoundError(
