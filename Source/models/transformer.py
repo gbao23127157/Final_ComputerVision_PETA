@@ -5,8 +5,7 @@ import torch.nn.functional as F
 class TransformerAttentionBlock(nn.Module):
     """
     Khối Transformer Attention cốt lõi của kiến trúc PETA.
-    Nhiệm vụ: Tính toán sự tương quan giữa các ảnh trong album để lọc nhiễu 
-    và khuếch đại các đặc trưng quan trọng.
+    Nhiệm vụ: Tính toán sự tương quan giữa các ảnh trong album để lọc nhiễu và khuếch đại các đặc trưng quan trọng.
     """
     def __init__(self, embed_dim, num_heads=8, dropout=0.1):
         """
@@ -47,17 +46,15 @@ class TransformerAttentionBlock(nn.Module):
         Kết quả trả về:
             output (torch.Tensor): Đặc trưng đã được lọc nhiễu và cập nhật ngữ cảnh (Batch_Size, N, d).
         """
-        # PyTorch MultiheadAttention yêu cầu input dạng (N, Batch_Size, d)
-        # nên ta cần hoán đổi (permute) chiều của x
+        # Bước 1: Chuẩn bị định dạng dữ liệu và Mask
+        # Chuyển đổi tensor sang (Sequence_Length, Batch, Dimension) để phù hợp với PyTorch MHA
         x_permuted = x.permute(1, 0, 2)
         
-        # Tạo key_padding_mask từ mask của chúng ta (Pytorch dùng True cho vị trí cần bỏ qua)
-        # Nếu mask[i] = 1 (ảnh thật) -> key_padding_mask = False
-        # Nếu mask[i] = 0 (ảnh padding) -> key_padding_mask = True
+        # Tạo key_padding_mask từ mask (Ảnh thật = False, Padding = True)
         key_padding_mask = (mask == 0) if mask is not None else None
         
         # Bước 2: Tính toán Self-Attention (Q, K, V đều là x_permuted)
-        # attn_output chính là F' trong Proposal của bạn
+        # attn_output chính là F' 
         attn_output, attn_weights = self.multihead_attn(
             query=x_permuted, 
             key=x_permuted, 
@@ -65,7 +62,7 @@ class TransformerAttentionBlock(nn.Module):
             key_padding_mask=key_padding_mask
         )
         
-        # Residual connection (Cộng tắt) và Layer Normalization
+        # Residual connection và Layer Normalization
         x_permuted = self.norm(x_permuted + self.dropout(attn_output))
         
         # Bước 3: Đi qua mạng Feed Forward

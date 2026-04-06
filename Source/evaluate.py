@@ -3,14 +3,13 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# Import các module từ dự án của bạn
 from data.dataset_loader import AlbumFeatureDataset
 from data.preprocess import pad_album_features
 from models.peta import PETAModel
 from utils.metrics import calculate_accuracy, calculate_map
 
 def get_class_mapping(dataset_txt_path):
-    """Lấy danh sách các lớp sự kiện từ file dataset.txt (tái sử dụng từ train.py)"""
+    """Lấy danh sách các lớp sự kiện từ file dataset.txt"""
     classes = set()
     with open(dataset_txt_path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -21,7 +20,7 @@ def get_class_mapping(dataset_txt_path):
     return {cls_name: idx for idx, cls_name in enumerate(class_list)}
 
 def load_pec_split(split_txt_path, class_to_idx):
-    """Đọc file test.txt và map với thư mục đặc trưng (tái sử dụng từ train.py)"""
+    """Đọc file test.txt và map với thư mục đặc trưng"""
     labels_dict = {}
     with open(split_txt_path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -39,7 +38,7 @@ def evaluate_model():
     FEATURE_DIR = "./data/features"
     MODEL_WEIGHTS = "../Release/best_peta_model.pth"  # Đường dẫn tới file trọng số tốt nhất
     
-    # Siêu tham số (Batch Size tùy ý, nhưng phần kiến trúc mạng phải khớp với lúc Train)
+    # Siêu tham số
     BATCH_SIZE = 16
 
     # 2. Chuẩn bị dữ liệu Test
@@ -57,8 +56,7 @@ def evaluate_model():
     
     # 3. Khởi tạo mô hình & Tải trọng số (Load Weights)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # LƯU Ý: Khởi tạo mô hình với các tham số giống hệt file train.py
+   
     model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=1, dropout=0.3)
     
     try:
@@ -71,7 +69,7 @@ def evaluate_model():
 
     model.to(device)
     
-    # Bật chế độ đánh giá (Rất quan trọng: Tắt Dropout và khóa BatchNorm)
+    # Bật chế độ đánh giá
     model.eval()
     
     # 4. Vòng lặp dự đoán trên tập Test

@@ -1,22 +1,8 @@
-"""
-pec_utils.py
-Các tiện ích đặc thù cho dataset PEC (Photo Event Classification):
-  - build_labels_file   : tạo labels.txt từ cấu trúc thư mục images/
-  - load_labels_dict    : đọc labels.txt → dict {album_id: label}
-  - load_split          : đọc train.txt / test.txt → set album_ids
-  - SubsetAlbumDataset  : Dataset con theo danh sách album_ids cụ thể
-"""
-
 import os
 import json
 import torch
 import warnings
 from torch.utils.data import Dataset
-
-
-# ─────────────────────────────────────────────
-# 1. Xây dựng file nhãn từ cấu trúc thư mục
-# ─────────────────────────────────────────────
 
 def build_labels_file(images_dir, output_label_file):
     """
@@ -49,11 +35,6 @@ def build_labels_file(images_dir, output_label_file):
     print(f"Đã tạo labels.txt: {len(lines)} album, {len(class_names)} class")
     return class_to_idx
 
-
-# ─────────────────────────────────────────────
-# 2. Đọc file nhãn
-# ─────────────────────────────────────────────
-
 def load_labels_dict(label_file):
     """
     Đọc labels.txt (mỗi dòng: <album_id> <label>) → dict.
@@ -72,11 +53,6 @@ def load_labels_dict(label_file):
                 labels[parts[0]] = int(parts[1])
     print(f"Đã tải {len(labels)} nhãn từ {label_file}")
     return labels
-
-
-# ─────────────────────────────────────────────
-# 3. Đọc split chính thức của PEC
-# ─────────────────────────────────────────────
 
 def load_split(meta_dir, split="train"):
     """
@@ -119,11 +95,6 @@ def load_split(meta_dir, split="train"):
         )
 
     return album_ids
-
-
-# ─────────────────────────────────────────────
-# 4. Dataset theo danh sách album cụ thể
-# ─────────────────────────────────────────────
 
 class SubsetAlbumDataset(Dataset):
     """

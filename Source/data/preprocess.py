@@ -36,7 +36,6 @@ def pad_album_features(batch):
         padded_features.append(padded_f)
         
         # Tạo mask để mô hình Transformer biết đâu là ảnh thật, đâu là ảnh padding
-        # (Quan trọng cho cơ chế Self-Attention trong kiến trúc PETA)
         m = torch.zeros(max_n)
         m[:n] = 1
         masks.append(m)

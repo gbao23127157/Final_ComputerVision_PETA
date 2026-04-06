@@ -13,13 +13,15 @@ class PETAModel(nn.Module):
         
         Tham số:
             embed_dim (int): Số chiều của vector đặc trưng từ CNN (Mặc định 2048 của ResNet50).
-            num_classes (int): Số lượng lớp sự kiện cần phân loại (Tập CUFED thường có 14, PEC có 14).
+            num_classes (int): Số lượng lớp sự kiện cần phân loại (PEC có 14).
             num_heads (int): Số luồng chú ý (heads) trong khối Transformer.
             num_layers (int): Số lượng lớp Transformer xếp chồng lên nhau.
             dropout (float): Tỉ lệ ngắt kết nối để giảm Overfitting.
         """
         super(PETAModel, self).__init__()
         self.embed_dim = embed_dim
+
+        # Bước 1: Trích xuất đặc trưng (CNN Backbone trích xuất vector 2048 chiều từ ảnh)
         
         # Bước 2: Khối Lọc nhiễu bằng Transformer Attention
         # Có thể xếp chồng nhiều lớp Transformer để học ngữ cảnh sâu hơn
@@ -59,7 +61,7 @@ class PETAModel(nn.Module):
         # Tính tổng các vector đặc trưng của ảnh thật trong mỗi album
         sum_features = torch.sum(masked_features, dim=1)
         
-        # Đếm số lượng ảnh thật trong mỗi album (chống chia cho 0 bằng clamp)
+        # Đếm số lượng ảnh thật trong mỗi album
         valid_counts = torch.clamp(torch.sum(mask_expanded, dim=1), min=1.0)
         
         # Chia tổng cho số lượng để ra trung bình
@@ -78,9 +80,10 @@ class PETAModel(nn.Module):
         Kết quả trả về:
             logits (torch.Tensor): Phân phối dự đoán (chưa qua softmax), kích thước (Batch, C).
         """
+        # Bước 1: Tiếp nhận đặc trưng đầu vào (Dữ liệu đã được trích xuất từ CNN)
         x = features
         
-        # Đi qua tuần tự các lớp Transformer Attention để lọc nhiễu
+        # Bước 2: Đi qua tuần tự các lớp Transformer Attention để lọc nhiễu
         for layer in self.transformer_layers:
             x, attn_weights = layer(x, mask)
         
@@ -91,8 +94,6 @@ class PETAModel(nn.Module):
         
         # Đưa qua mạng MLP để phân lớp
         logits = self.mlp_head(v_album)
-        
-        # Lưu ý: Ta trả về logits thô thay vì dùng hàm softmax ở đây.
-        # Lý do là trong script train.py, hàm nn.CrossEntropyLoss() của PyTorch 
-        # đã tự động bao gồm cả phép tính Log-Softmax bên trong nó.
+         
+        # Trả về phân phối dự đoán (logits)
         return logits

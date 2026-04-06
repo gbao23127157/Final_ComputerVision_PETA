@@ -5,8 +5,7 @@ import sys
 def setup_logger(log_file_path="training_log.txt"):
     """
     Thiết lập công cụ ghi nhật ký (logger).
-    Logger này sẽ in thông báo ra màn hình console (để theo dõi trực tiếp)
-    đồng thời ghi vào một file văn bản (để lưu trữ làm minh chứng cho báo cáo).
+    Logger này sẽ in thông báo ra màn hình console với đồng thời ghi vào một file văn bản.
     
     Tham số:
         log_file_path (str): Đường dẫn đến file lưu nhật ký.
@@ -27,7 +26,7 @@ def setup_logger(log_file_path="training_log.txt"):
     # Định dạng chuỗi thông báo: [Thời gian] - [Mức độ] - Nội dung
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-    # 1. Handler ghi ra màn hình console (Terminal)
+    # Handler ghi ra màn hình console
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
@@ -37,7 +36,7 @@ def setup_logger(log_file_path="training_log.txt"):
     if log_dir and not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    # 2. Handler ghi vào file văn bản
+    # Handler ghi vào file văn bản
     file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)

@@ -135,7 +135,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         val_acc = calculate_accuracy(val_preds, val_targets)
         val_map = calculate_map(val_preds, val_targets, num_classes)
 
-        logger.info(f"Val   - Loss: {val_loss:.4f} | Accuracy: {val_acc:.4f} | mAP: {val_map:.4f}")
+        logger.info(f"Val - Loss: {val_loss:.4f} | Accuracy: {val_acc:.4f} | mAP: {val_map:.4f}")
 
         # 3. LƯU MÔ HÌNH TỐT NHẤT
         if val_acc > best_val_acc:
@@ -145,7 +145,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
 
     logger.info("Hoàn tất quá trình huấn luyện!")
 
-# ====== KHỐI LỆNH CHẠY CHÍNH (MAIN ENTRY POINT) ======
+# ====== KHỐI LỆNH CHẠY CHÍNH ======
 if __name__ == "__main__":
     # Cấu hình siêu tham số (Hyperparameters)
     FEATURE_DIR = "./data/features"
@@ -166,7 +166,6 @@ if __name__ == "__main__":
 
     DATASET_TXT = "./data/dataset.txt"
     TRAIN_TXT = "./data/train.txt"
-    # LƯU Ý: Không nạp test.txt vào đây để tránh Data Leakage!
     
     # 2. Tạo từ điển ánh xạ (Ví dụ: {'birthday': 0, 'children_birthday': 1...})
     class_to_idx = get_class_mapping(DATASET_TXT)
@@ -174,7 +173,7 @@ if __name__ == "__main__":
     # 3. Load nhãn cho tập Train
     train_labels_dict = load_pec_split(TRAIN_TXT, class_to_idx)
     
-    # 4. Khởi tạo Dataset CHỈ VỚI TẬP TRAIN
+    # 4. Khởi tạo Dataset chỉ với tập train
     full_train_dataset = AlbumFeatureDataset(FEATURE_DIR, train_labels_dict)
     
     # 5. Tự động trích 20% từ tập Train làm Validation
