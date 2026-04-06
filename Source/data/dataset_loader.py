@@ -11,18 +11,16 @@ class AlbumFeatureDataset(Dataset):
     def __init__(self, feature_dir, labels_dict):
         """
         Hàm khởi tạo (Constructor) của lớp AlbumFeatureDataset.
-        
-        Tham số:
-            feature_dir (str): Đường dẫn đến thư mục chứa các file tensor đặc trưng (.pt) của các album.
-            labels_dict (dict): Dictionary chứa ánh xạ từ tên album (hoặc ID) sang nhãn sự kiện (integer).
-                                Ví dụ: {'album_01': 3, 'album_02': 0, ...}
         """
         self.feature_dir = feature_dir
         self.labels_dict = labels_dict
         
-        # Lấy danh sách tất cả các file đặc trưng trong thư mục
-        # Giả sử mỗi file .pt đại diện cho một album X = {x_1, x_2, ..., x_N}
-        self.album_files = [f for f in os.listdir(feature_dir) if f.endswith('.pt')]
+        # Lấy tất cả các file .pt trong thư mục
+        all_files = [f for f in os.listdir(feature_dir) if f.endswith('.pt')]
+        
+        # CẢI TIẾN: Chỉ giữ lại những file album CÓ MẶT trong labels_dict
+        # Nhờ vậy, khi bạn truyền dict của tập Train, nó chỉ load ảnh Train.
+        self.album_files = [f for f in all_files if f.split('.')[0] in self.labels_dict]
 
     def __len__(self):
         """

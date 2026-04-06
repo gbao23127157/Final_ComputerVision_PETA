@@ -72,13 +72,7 @@ def extract_and_save_features(raw_data_dir, output_feature_dir):
     
     # Vòng lặp duyệt qua từng album với thanh tiến trình
     for album_name in tqdm(album_folders, desc="Đang trích xuất đặc trưng các album"):
-        # Bỏ qua nếu file .pt đã tồn tại (resume support)
-        save_path = os.path.join(output_feature_dir, f"{album_name}.pt")
-        if os.path.exists(save_path):
-            continue
-        
         album_path = os.path.join(raw_data_dir, album_name)
-
         image_files = [img for img in os.listdir(album_path) if img.lower().endswith(('.png', '.jpg', '.jpeg'))]
         
         # Nếu album rỗng thì bỏ qua
@@ -109,7 +103,7 @@ def extract_and_save_features(raw_data_dir, output_feature_dir):
             album_tensor = torch.stack(album_features)
             
             # Lưu ma trận đặc trưng thành file .pt tương ứng với tên album
-            # save_path = os.path.join(output_feature_dir, f"{album_name}.pt")
+            save_path = os.path.join(output_feature_dir, f"{album_name}.pt")
             torch.save(album_tensor, save_path)
 
 # ====== Khối lệnh chạy chính ======

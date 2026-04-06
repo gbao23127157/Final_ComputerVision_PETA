@@ -12,36 +12,44 @@ from models.peta import PETAModel
 from utils.metrics import calculate_accuracy, calculate_map
 from utils.logger import setup_logger
 
-def load_labels_dict(label_file_path):
+def get_class_mapping(dataset_txt_path):
     """
-    Đọc file văn bản chứa nhãn thực tế của tập dữ liệu.
-    Định dạng giả định mỗi dòng: <tên_album> <khoảng_trắng> <mã_nhãn_số_nguyên>
-    Ví dụ: album_001 3
+    Quét file dataset.txt để tìm tất cả các lớp sự kiện (birthday, wedding...)
+    và gán cho chúng một ID số nguyên (0, 1, 2...).
+    """
+    classes = set()
+    with open(dataset_txt_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            if '/' in line:
+                class_name = line.strip().split('/')[0]
+                classes.add(class_name)
+                
+    # Sắp xếp theo alphabet để đảm bảo ID luôn cố định mỗi lần chạy
+    class_list = sorted(list(classes))
+    class_to_idx = {cls_name: idx for idx, cls_name in enumerate(class_list)}
     
-    Tham số:
-        label_file_path (str): Đường dẫn đến file txt/csv chứa nhãn.
-        
-    Kết quả trả về:
-        dict: Ánh xạ từ tên album sang nhãn (int).
+    print(f"Đã ánh xạ {len(class_to_idx)} lớp sự kiện: {class_to_idx}")
+    return class_to_idx
+
+def load_pec_split(split_txt_path, class_to_idx):
+    """
+    Đọc file train.txt hoặc test.txt của PEC.
+    Định dạng: <class_name>/<album_id> (VD: birthday/100)
+    Chuyển thành dict: {'birthday_100': 0}
     """
     labels_dict = {}
-    
-    try:
-        with open(label_file_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                parts = line.strip().split() # Cắt dòng theo khoảng trắng
-                if len(parts) >= 2:
-                    album_id = parts[0]
-                    # Chuyển nhãn sự kiện thành số nguyên
-                    label = int(parts[1]) 
-                    labels_dict[album_id] = label
-                    
-        print(f"Đã tải thành công {len(labels_dict)} nhãn từ file {label_file_path}")
-    except Exception as e:
-        print(f"Lỗi khi đọc file nhãn: {e}")
-        
+    with open(split_txt_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if '/' in line:
+                class_name, album_id = line.split('/')
+                # Khớp với tên folder "birthday_100" ta vừa tạo ở Bước 1
+                album_folder_name = f"{class_name}_{album_id}"
+                
+                # Gán nhãn số nguyên
+                labels_dict[album_folder_name] = class_to_idx[class_name]
+                
     return labels_dict
-
 def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs, num_classes, logger, save_path):
     """
     Hàm thực hiện vòng lặp huấn luyện và đánh giá mô hình qua nhiều epoch.
@@ -156,25 +164,27 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Thiết bị sử dụng: {device}")
 
-    LABEL_FILE = "./data/labels.txt"
-    labels_dict = load_labels_dict(LABEL_FILE)
-
-    # Nếu chưa trích xuất đặc trưng, thông báo cho người dùng
-    if not os.path.exists(FEATURE_DIR) or len(os.listdir(FEATURE_DIR)) == 0:
-        logger.error("Không tìm thấy file đặc trưng! Vui lòng chạy file extract_features.py trước.")
-        exit(1)
-
-    # Khởi tạo Dataset
-    dataset = AlbumFeatureDataset(FEATURE_DIR, labels_dict)
+    DATASET_TXT = "./data/dataset.txt"
+    TRAIN_TXT = "./data/train.txt"
+    # LƯU Ý: Không nạp test.txt vào đây để tránh Data Leakage!
     
-    # Chia dữ liệu theo tỷ lệ 80% Train, 20% Validation
-    train_size = int(0.8 * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
+    # 2. Tạo từ điển ánh xạ (Ví dụ: {'birthday': 0, 'children_birthday': 1...})
+    class_to_idx = get_class_mapping(DATASET_TXT)
+    
+    # 3. Load nhãn cho tập Train
+    train_labels_dict = load_pec_split(TRAIN_TXT, class_to_idx)
+    
+    # 4. Khởi tạo Dataset CHỈ VỚI TẬP TRAIN
+    full_train_dataset = AlbumFeatureDataset(FEATURE_DIR, train_labels_dict)
+    
+    # 5. Tự động trích 20% từ tập Train làm Validation
+    train_size = int(0.8 * len(full_train_dataset))
+    val_size = len(full_train_dataset) - train_size
+    train_dataset, val_dataset = torch.utils.data.random_split(full_train_dataset, [train_size, val_size])
 
-    logger.info(f"Tổng số album: {len(dataset)} | Train: {train_size} | Val: {val_size}")
+    logger.info(f"Đã chia tập Train gốc | Train: {train_size} | Val: {val_size}")
 
-    # Khởi tạo DataLoader, LƯU Ý truyền collate_fn=pad_album_features để xử lý album khác độ dài
+    # 4. Khởi tạo DataLoader
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=pad_album_features)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=pad_album_features)
 
