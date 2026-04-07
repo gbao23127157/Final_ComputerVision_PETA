@@ -22,7 +22,7 @@ class BaselineModel(nn.Module):
         # features kích thước: (Batch_size, N_ảnh, 2048)
         # masks kích thước: (Batch_size, N_ảnh)
         
-        # 1. Masked Average Pooling (Gộp cào bằng)
+        # 1. Masked Average Pooling
         # Mở rộng mask để nhân với features: (Batch, N, 1)
         mask_expanded = masks.unsqueeze(-1) 
         valid_features = features * mask_expanded

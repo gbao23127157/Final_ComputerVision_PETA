@@ -18,8 +18,6 @@ class AlbumFeatureDataset(Dataset):
         # Lấy tất cả các file .pt trong thư mục
         all_files = [f for f in os.listdir(feature_dir) if f.endswith('.pt')]
         
-        # CẢI TIẾN: Chỉ giữ lại những file album CÓ MẶT trong labels_dict
-        # Nhờ vậy, khi truyền dict của tập Train, nó chỉ load ảnh Train.
         self.album_files = [f for f in all_files if f.split('.')[0] in self.labels_dict]
 
     def __len__(self):
@@ -52,7 +50,7 @@ class AlbumFeatureDataset(Dataset):
         # Load ma trận đặc trưng F của album lên bộ nhớ
         features = torch.load(file_path)
         
-        # Trích xuất tên album để tìm nhãn
+        # Trích xuất tên album để tìm label
         album_id = file_name.split('.')[0]
         label = self.labels_dict[album_id]
         

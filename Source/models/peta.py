@@ -5,9 +5,8 @@ from .transformer import TransformerAttentionBlock
 
 def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     """
-    Hàm khởi tạo Truncated Normal (Cắt cụt phân phối chuẩn).
-    Được sử dụng trong Vision Transformer (ViT) và code gốc của PETA
-    để giúp mô hình ổn định trong những epoch đầu tiên.
+    Hàm khởi tạo Truncated Normal.
+    Được sử dụng trong Vision Transformer (ViT)
     """
     with torch.no_grad():
         l = (a - mean) / std

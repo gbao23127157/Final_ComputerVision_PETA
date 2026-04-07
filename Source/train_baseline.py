@@ -134,7 +134,7 @@ if __name__ == "__main__":
     model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES, dropout=0.3)
     model = model.to(device)
 
-    # Dùng cấu hình Basic như PETA
+    # Dùng cấu hình như PETA
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     

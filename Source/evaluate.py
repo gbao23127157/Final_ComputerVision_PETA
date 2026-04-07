@@ -85,7 +85,7 @@ def evaluate_model():
     
     print(f"Đã nạp {len(test_dataset)} albums từ tập Test (Dữ liệu hoàn toàn mới).")
     
-    # 3. Khởi tạo mô hình & Tải trọng số (Load Weights)
+    # 3. Khởi tạo mô hình & Tải trọng số 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
     model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.5, max_len=NUM_SAMPLES)
@@ -110,7 +110,6 @@ def evaluate_model():
     test_preds = []
     test_targets = []
     
-    # Tắt tính gradient để tăng tốc độ và tiết kiệm bộ nhớ
     with torch.no_grad():
         for features, labels, masks in tqdm(test_loader, desc="Đang đánh giá mô hình"):
             features, masks = features.to(device), masks.to(device)

@@ -72,7 +72,7 @@ def evaluate_model():
     
     test_dataset = AlbumFeatureDataset(FEATURE_DIR, test_labels_dict)
     
-    # [ĐÃ SỬA]: Sử dụng fixed_sample_collate thay vì pad_album_features
+    # Sử dụng fixed_sample_collate thay vì pad_album_features
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
