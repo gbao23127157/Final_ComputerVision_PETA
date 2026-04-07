@@ -5,10 +5,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# Cấu trúc import từ các module đã xây dựng
+# import từ các module đã build
 from data.dataset_loader import AlbumFeatureDataset
 from data.preprocess import pad_album_features
-# ĐÃ SỬA: Thay đổi PETAModel thành BaselineModel
 from models.baseline import BaselineModel
 from utils.metrics import calculate_accuracy, calculate_map
 from utils.logger import setup_logger
@@ -93,7 +92,6 @@ if __name__ == "__main__":
     NUM_CLASSES = 14 
     LEARNING_RATE = 1e-4
     LOG_PATH = "../Docs/training_log.txt"
-    # ĐÃ SỬA: Sửa tên file lưu trọng số thành best_baseline_model.pth
     SAVE_PATH = "../Release/best_baseline_model.pth"
 
     logger = setup_logger(LOG_PATH)
@@ -112,7 +110,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=pad_album_features)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=pad_album_features)
 
-    # ĐÃ SỬA: Khởi tạo BaselineModel với các tham số mới
+    # Khởi tạo BaselineModel với các tham số mới
     model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES, dropout=0.3)
     model = model.to(device)
 

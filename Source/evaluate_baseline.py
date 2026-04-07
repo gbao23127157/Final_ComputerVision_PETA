@@ -5,7 +5,6 @@ from tqdm import tqdm
 
 from data.dataset_loader import AlbumFeatureDataset
 from data.preprocess import pad_album_features
-# ĐÃ SỬA: Thay đổi PETAModel thành BaselineModel
 from models.baseline import BaselineModel
 from utils.metrics import calculate_accuracy, calculate_map
 
@@ -33,7 +32,7 @@ def evaluate_model():
     DATASET_TXT = "./data/dataset.txt"
     TEST_TXT = "./data/test.txt"
     FEATURE_DIR = "./data/features"
-    # ĐÃ SỬA: Đổi đường dẫn file load trọng số thành best_baseline_model.pth
+
     MODEL_WEIGHTS = "../Release/best_baseline_model.pth" 
     
     BATCH_SIZE = 16
@@ -47,7 +46,7 @@ def evaluate_model():
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
-    # ĐÃ SỬA: Khởi tạo BaselineModel tương tự như bên train
+    # Khởi tạo BaselineModel tương tự như bên train
     model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES, dropout=0.3)
     
     try:

@@ -5,7 +5,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# Cấu trúc import từ các module đã xây dựng
+# import từ các module đã build
 from data.dataset_loader import AlbumFeatureDataset
 from data.preprocess import pad_album_features
 from models.peta import PETAModel
@@ -208,7 +208,7 @@ if __name__ == "__main__":
         val_loader=val_loader,
         criterion=criterion,
         optimizer=optimizer,
-        scheduler=scheduler, # ĐÃ SỬA: Truyền thêm scheduler vào hàm
+        scheduler=scheduler, # Truyền thêm scheduler vào hàm
         device=device,
         num_epochs=NUM_EPOCHS,
         num_classes=NUM_CLASSES,
