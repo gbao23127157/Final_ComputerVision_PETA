@@ -159,7 +159,7 @@ if __name__ == "__main__":
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
     # [ĐÃ SỬA]: Giữ đúng 2 layers cấu trúc nông
-    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.4, max_len=NUM_SAMPLES)
+    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.5, max_len=NUM_SAMPLES)
     model = model.to(device)
 
     # [ĐÃ SỬA]: Bỏ label_smoothing
