@@ -4,9 +4,38 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from data.dataset_loader import AlbumFeatureDataset
-from data.preprocess import pad_album_features
 from models.peta import PETAModel
 from utils.metrics import calculate_accuracy, calculate_map
+
+# [BỔ SUNG] Hàm lấy mẫu cố định (Phải giống hệt lúc Train)
+def fixed_sample_collate(batch):
+    num_samples = 50 # Số lượng ảnh SA quy định
+    
+    features_list = []
+    labels_list = []
+    masks_list = []
+    
+    for features, label in batch:
+        n = features.size(0)
+        
+        if n >= num_samples:
+            # Lấy mẫu ngẫu nhiên không lặp lại
+            indices = torch.randperm(n)[:num_samples]
+            sampled_features = features[indices]
+        else:
+            # Lặp lại ảnh ngẫu nhiên để bù vào phần thiếu
+            missing_count = num_samples - n
+            duplicate_indices = torch.randint(0, n, (missing_count,))
+            duplicated_features = features[duplicate_indices]
+            sampled_features = torch.cat([features, duplicated_features], dim=0)
+        
+        features_list.append(sampled_features)
+        labels_list.append(label)
+        
+        # Mask toàn số 1
+        masks_list.append(torch.ones(num_samples))
+        
+    return torch.stack(features_list), torch.tensor(labels_list), torch.stack(masks_list)
 
 def get_class_mapping(dataset_txt_path):
     """Lấy danh sách các lớp sự kiện từ file dataset.txt"""
@@ -40,6 +69,7 @@ def evaluate_model():
     
     # Siêu tham số
     BATCH_SIZE = 16
+    NUM_SAMPLES = 50 # ĐỒNG BỘ: Số lượng ảnh / album
 
     # 2. Chuẩn bị dữ liệu Test
     print("Đang chuẩn bị dữ liệu Test...")
@@ -50,14 +80,20 @@ def evaluate_model():
     
     # Khởi tạo Dataset và DataLoader cho tập Test
     test_dataset = AlbumFeatureDataset(FEATURE_DIR, test_labels_dict)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=pad_album_features)
+    
+    # ĐÃ SỬA: Dùng fixed_sample_collate
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
     
     print(f"Đã nạp {len(test_dataset)} albums từ tập Test (Dữ liệu hoàn toàn mới).")
     
     # 3. Khởi tạo mô hình & Tải trọng số (Load Weights)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
+<<<<<<< Updated upstream
     model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.4)
+=======
+    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=6, dropout=0.4, max_len=NUM_SAMPLES)
+>>>>>>> Stashed changes
     
     try:
         # Nạp trọng số đã học vào mô hình
@@ -65,6 +101,10 @@ def evaluate_model():
         print("-> Đã tải thành công file trọng số best_peta_model.pth!")
     except FileNotFoundError:
         print(f"LỖI: Không tìm thấy file trọng số tại {MODEL_WEIGHTS}. Bạn đã chạy train.py chưa?")
+        return
+    except RuntimeError as e:
+        print("\nLỖI LỆCH TRỌNG SỐ (SHAPE MISMATCH): Cấu hình PETAModel ở file evaluate.py không khớp với lúc train.")
+        print("Chi tiết lỗi:", e)
         return
 
     model.to(device)

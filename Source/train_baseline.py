@@ -5,23 +5,49 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+<<<<<<< Updated upstream
 # import từ các module đã build
 from data.dataset_loader import AlbumFeatureDataset
 from data.preprocess import pad_album_features
+=======
+from data.dataset_loader import AlbumFeatureDataset
+>>>>>>> Stashed changes
 from models.baseline import BaselineModel
 from utils.metrics import calculate_accuracy, calculate_map
 from utils.logger import setup_logger
+
+# [BỔ SUNG] Dùng chung cơ chế Fixed Sample (50 ảnh) như PETA
+def fixed_sample_collate(batch):
+    num_samples = 50 
+    features_list = []
+    labels_list = []
+    masks_list = []
+    
+    for features, label in batch:
+        n = features.size(0)
+        if n >= num_samples:
+            indices = torch.randperm(n)[:num_samples]
+            sampled_features = features[indices]
+        else:
+            missing_count = num_samples - n
+            duplicate_indices = torch.randint(0, n, (missing_count,))
+            duplicated_features = features[duplicate_indices]
+            sampled_features = torch.cat([features, duplicated_features], dim=0)
+        
+        features_list.append(sampled_features)
+        labels_list.append(label)
+        masks_list.append(torch.ones(num_samples))
+        
+    return torch.stack(features_list), torch.tensor(labels_list), torch.stack(masks_list)
 
 def get_class_mapping(dataset_txt_path):
     classes = set()
     with open(dataset_txt_path, 'r', encoding='utf-8') as f:
         for line in f:
             if '/' in line:
-                class_name = line.strip().split('/')[0]
-                classes.add(class_name)
+                classes.add(line.strip().split('/')[0])
     class_list = sorted(list(classes))
-    class_to_idx = {cls_name: idx for idx, cls_name in enumerate(class_list)}
-    return class_to_idx
+    return {cls_name: idx for idx, cls_name in enumerate(class_list)}
 
 def load_pec_split(split_txt_path, class_to_idx):
     labels_dict = {}
@@ -88,10 +114,14 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
 if __name__ == "__main__":
     FEATURE_DIR = "./data/features"
     BATCH_SIZE = 16
-    NUM_EPOCHS = 20
+    NUM_EPOCHS = 20 # [ĐÃ ĐỒNG BỘ]: Khớp với PETA
     NUM_CLASSES = 14 
     LEARNING_RATE = 1e-4
+<<<<<<< Updated upstream
     LOG_PATH = "../Docs/training_log.txt"
+=======
+    LOG_PATH = "../Docs/training_log_baseline.txt" # Đổi tên log file để không ghi đè PETA
+>>>>>>> Stashed changes
     SAVE_PATH = "../Release/best_baseline_model.pth"
 
     logger = setup_logger(LOG_PATH)
@@ -107,15 +137,21 @@ if __name__ == "__main__":
     val_size = len(full_train_dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(full_train_dataset, [train_size, val_size])
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=pad_album_features)
-    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=pad_album_features)
+    # [ĐÃ SỬA]: Sử dụng fixed_sample_collate thay vì pad_album_features
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
+<<<<<<< Updated upstream
     # Khởi tạo BaselineModel với các tham số mới
+=======
+>>>>>>> Stashed changes
     model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES, dropout=0.3)
     model = model.to(device)
 
+    # [ĐÃ ĐỒNG BỘ]: Dùng cấu hình Basic (Không có Label Smoothing) như PETA hiện tại
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    
     os.makedirs("../Release", exist_ok=True)
 
     train_model(model, train_loader, val_loader, criterion, optimizer, device, NUM_EPOCHS, NUM_CLASSES, logger, SAVE_PATH)

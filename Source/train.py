@@ -5,94 +5,86 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+<<<<<<< Updated upstream
 # import từ các module đã build
+=======
+>>>>>>> Stashed changes
 from data.dataset_loader import AlbumFeatureDataset
-from data.preprocess import pad_album_features
 from models.peta import PETAModel
 from utils.metrics import calculate_accuracy, calculate_map
 from utils.logger import setup_logger
 
+def fixed_sample_collate(batch):
+    num_samples = 50 
+    features_list = []
+    labels_list = []
+    masks_list = []
+    
+    for features, label in batch:
+        n = features.size(0)
+        if n >= num_samples:
+            indices = torch.randperm(n)[:num_samples]
+            sampled_features = features[indices]
+        else:
+            missing_count = num_samples - n
+            duplicate_indices = torch.randint(0, n, (missing_count,))
+            duplicated_features = features[duplicate_indices]
+            sampled_features = torch.cat([features, duplicated_features], dim=0)
+        
+        features_list.append(sampled_features)
+        labels_list.append(label)
+        masks_list.append(torch.ones(num_samples))
+        
+    return torch.stack(features_list), torch.tensor(labels_list), torch.stack(masks_list)
+
 def get_class_mapping(dataset_txt_path):
-    """
-    Quét file dataset.txt để tìm tất cả các lớp sự kiện (birthday, wedding...)
-    và gán cho chúng một ID số nguyên (0, 1, 2...).
-    """
     classes = set()
     with open(dataset_txt_path, 'r', encoding='utf-8') as f:
         for line in f:
             if '/' in line:
-                class_name = line.strip().split('/')[0]
-                classes.add(class_name)
-                
-    # Sắp xếp theo alphabet để đảm bảo ID luôn cố định mỗi lần chạy
+                classes.add(line.strip().split('/')[0])
     class_list = sorted(list(classes))
-    class_to_idx = {cls_name: idx for idx, cls_name in enumerate(class_list)}
-    
-    print(f"Đã ánh xạ {len(class_to_idx)} lớp sự kiện: {class_to_idx}")
-    return class_to_idx
+    return {cls_name: idx for idx, cls_name in enumerate(class_list)}
 
 def load_pec_split(split_txt_path, class_to_idx):
-    """
-    Đọc file train.txt hoặc test.txt của PEC.
-    Định dạng: <class_name>/<album_id> (VD: birthday/100)
-    Chuyển thành dict: {'birthday_100': 0}
-    """
     labels_dict = {}
     with open(split_txt_path, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             if '/' in line:
                 class_name, album_id = line.split('/')
-                # Khớp với tên folder "birthday_100" ta vừa tạo ở Bước 1
                 album_folder_name = f"{class_name}_{album_id}"
-                
-                # Gán nhãn số nguyên
                 labels_dict[album_folder_name] = class_to_idx[class_name]
-                
     return labels_dict
 
+<<<<<<< Updated upstream
 # Thêm tham số scheduler vào hàm train_model
+=======
+>>>>>>> Stashed changes
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs, num_classes, logger, save_path):
-    """
-    Hàm thực hiện vòng lặp huấn luyện và đánh giá mô hình qua nhiều epoch.
-    Lưu lại mô hình có độ chính xác trên tập validation cao nhất.
-    """
     best_val_acc = 0.0
 
     for epoch in range(num_epochs):
         logger.info(f"--- Epoch {epoch + 1}/{num_epochs} ---")
         
-        # 1. PHA HUẤN LUYỆN (TRAINING)
         model.train()
         train_loss = 0.0
         train_preds, train_targets = [], []
 
-        # Tích hợp thanh tiến trình cho vòng lặp train
         for features, labels, masks in tqdm(train_loader, desc="Huấn luyện", leave=False):
-            # Đưa dữ liệu lên GPU/CPU
             features, labels, masks = features.to(device), labels.to(device), masks.to(device)
 
-            # Xóa bỏ đạo hàm (gradient) cũ từ bước trước
             optimizer.zero_grad()
-
-            # Truyền dữ liệu tiến qua mô hình (Forward pass)
             outputs = model(features, masks)
-            
-            # Tính toán độ lỗi (Loss)
             loss = criterion(outputs, labels)
             
-            # Lan truyền ngược (Backward pass) để tính đạo hàm
             loss.backward()
-            
-            # Cập nhật trọng số của mạng
             optimizer.step()
 
-            # Lưu lại thông tin để tính chỉ số mAP và Accuracy
             train_loss += loss.item() * features.size(0)
             train_preds.append(outputs.detach())
             train_targets.append(labels.detach())
 
-        # Tính toán độ đo tổng thể cho tập Train
         train_loss = train_loss / len(train_loader.dataset)
         train_preds = torch.cat(train_preds, dim=0)
         train_targets = torch.cat(train_targets, dim=0)
@@ -101,12 +93,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
         logger.info(f"Train - Loss: {train_loss:.4f} | Accuracy: {train_acc:.4f} | mAP: {train_map:.4f}")
 
-        # 2. PHA XÁC THỰC (VALIDATION)
         model.eval()
         val_loss = 0.0
         val_preds, val_targets = [], []
 
-        # Tắt tính toán đạo hàm để tiết kiệm bộ nhớ và tăng tốc độ
         with torch.no_grad():
             for features, labels, masks in tqdm(val_loader, desc="Xác thực", leave=False):
                 features, labels, masks = features.to(device), labels.to(device), masks.to(device)
@@ -118,7 +108,6 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
                 val_preds.append(outputs)
                 val_targets.append(labels)
 
-        # Tính toán độ đo tổng thể cho tập Validation
         val_loss = val_loss / len(val_loader.dataset)
         val_preds = torch.cat(val_preds, dim=0)
         val_targets = torch.cat(val_targets, dim=0)
@@ -127,14 +116,18 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
         logger.info(f"Val - Loss: {val_loss:.4f} | Accuracy: {val_acc:.4f} | mAP: {val_map:.4f}")
 
+<<<<<<< Updated upstream
         # Cập nhật scheduler dựa trên độ chính xác của tập validation
         scheduler.step(val_acc)
         
         # In ra Learning Rate hiện tại để tiện theo dõi
+=======
+        # [ĐÃ SỬA]: Scheduler CosineAnnealing cần step ở mỗi epoch không phụ thuộc vào val_acc
+        scheduler.step()
+>>>>>>> Stashed changes
         current_lr = optimizer.param_groups[0]['lr']
-        logger.info(f"Learning Rate hiện tại: {current_lr}")
+        logger.info(f"Learning Rate hiện tại: {current_lr:.6f}")
 
-        # 3. LƯU MÔ HÌNH TỐT NHẤT
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), save_path)
@@ -142,73 +135,84 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
     logger.info("Hoàn tất quá trình huấn luyện!")
 
-# ====== KHỐI LỆNH CHẠY CHÍNH ======
 if __name__ == "__main__":
-    # Cấu hình siêu tham số (Hyperparameters)
     FEATURE_DIR = "./data/features"
+<<<<<<< Updated upstream
     BATCH_SIZE = 16
     # Tăng số epoch lên 30 để có đủ thời gian cho Scheduler hoạt động
+=======
+    BATCH_SIZE = 16 # Nếu bị Out of Memory, giảm xuống 8
+>>>>>>> Stashed changes
     NUM_EPOCHS = 30 
-    NUM_CLASSES = 14 # Thay đổi tùy vào dataset (PEC hoặc CUFED)
+    NUM_CLASSES = 14
     LEARNING_RATE = 1e-4
+    NUM_SAMPLES = 50 # Giữ chuẩn 50 ảnh
     LOG_PATH = "../Docs/training_log.txt"
     SAVE_PATH = "../Release/best_peta_model.pth"
 
-    # Thiết lập logger
     logger = setup_logger(LOG_PATH)
-    logger.info("Khởi động kịch bản huấn luyện mô hình PETA")
+    logger.info("Khởi động kịch bản huấn luyện PETA (Max Settings)")
 
-    # Xác định thiết bị tính toán
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logger.info(f"Thiết bị sử dụng: {device}")
-
+    
     DATASET_TXT = "./data/dataset.txt"
     TRAIN_TXT = "./data/train.txt"
     
-    # 2. Tạo từ điển ánh xạ (Ví dụ: {'birthday': 0, 'children_birthday': 1...})
     class_to_idx = get_class_mapping(DATASET_TXT)
-    
-    # 3. Load nhãn cho tập Train
     train_labels_dict = load_pec_split(TRAIN_TXT, class_to_idx)
     
-    # 4. Khởi tạo Dataset chỉ với tập train
     full_train_dataset = AlbumFeatureDataset(FEATURE_DIR, train_labels_dict)
     
-    # 5. Tự động trích 20% từ tập Train làm Validation
     train_size = int(0.8 * len(full_train_dataset))
     val_size = len(full_train_dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(full_train_dataset, [train_size, val_size])
 
-    logger.info(f"Đã chia tập Train gốc | Train: {train_size} | Val: {val_size}")
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
+<<<<<<< Updated upstream
     # 4. Khởi tạo DataLoader
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=pad_album_features)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=pad_album_features)
 
     # Tăng num_layers lên 2 và dropout lên 0.4 để chống Overfitting
     model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.4)
+=======
+    # [CẬP NHẬT MAX SETTINGS]: num_layers = 6 (Khớp kiến trúc Alibaba-MIIL)
+    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=6, dropout=0.4, max_len=NUM_SAMPLES)
+>>>>>>> Stashed changes
     model = model.to(device)
 
-    # Cấu hình Loss, Optimizer và Scheduler
-    criterion = nn.CrossEntropyLoss()
+    # Thêm Label Smoothing nhẹ để mô hình không quá "kiêu ngạo"
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.05)
     
+<<<<<<< Updated upstream
     # Dùng AdamW thay cho Adam và thêm weight_decay
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-2)
     
     # Khởi tạo Scheduler giảm Learning Rate nếu val_acc không tăng sau 3 epochs
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3, verbose=True)
+=======
+    # [CẬP NHẬT MAX SETTINGS]: Dùng AdamW với weight_decay
+    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    
+    # [CẬP NHẬT MAX SETTINGS]: Dùng đường cong giảm Learning Rate Cosine
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
+>>>>>>> Stashed changes
 
-    # Đảm bảo thư mục Release tồn tại để lưu mô hình
     os.makedirs("../Release", exist_ok=True)
 
-    # Bắt đầu vòng lặp huấn luyện
     train_model(
         model=model,
         train_loader=train_loader,
         val_loader=val_loader,
         criterion=criterion,
         optimizer=optimizer,
+<<<<<<< Updated upstream
         scheduler=scheduler, # Truyền thêm scheduler vào hàm
+=======
+        scheduler=scheduler,
+>>>>>>> Stashed changes
         device=device,
         num_epochs=NUM_EPOCHS,
         num_classes=NUM_CLASSES,

@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 
 class AlbumFeatureDataset(Dataset):
     """
-    Lớp xử lý và tải dữ liệu cho bộ dữ liệu album ảnh PEC.
+    Lớp xử lý và tải dữ liệu cho bộ dữ liệu album ảnh (PEC hoặc CUFED).
     Thay vì load ảnh thô, lớp này load các tensor đặc trưng đã được trích xuất từ trước 
     để tăng tốc độ huấn luyện cho mô hình PETA.
     """
@@ -18,13 +18,14 @@ class AlbumFeatureDataset(Dataset):
         # Lấy tất cả các file .pt trong thư mục
         all_files = [f for f in os.listdir(feature_dir) if f.endswith('.pt')]
         
-        # CẢI TIẾN: Chỉ giữ lại những file album CÓ MẶT trong labels_dict 
-        # Nhờ vậy, khi truyền dict của tập Train, nó chỉ load ảnh Train.
+        # CẢI TIẾN: Chỉ giữ lại những file album CÓ MẶT trong labels_dict
+        # Nhờ vậy, khi bạn truyền dict của tập Train, nó chỉ load ảnh Train.
         self.album_files = [f for f in all_files if f.split('.')[0] in self.labels_dict]
 
     def __len__(self):
         """
         Hàm trả về tổng số lượng album có trong tập dữ liệu.
+        Hàm này bắt buộc phải override khi kế thừa từ torch.utils.data.Dataset.
         
         Kết quả trả về:
             int: Tổng số lượng album (số lượng mẫu dữ liệu).

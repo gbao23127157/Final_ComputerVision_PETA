@@ -4,9 +4,42 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from data.dataset_loader import AlbumFeatureDataset
+<<<<<<< Updated upstream
 from data.preprocess import pad_album_features
+=======
+>>>>>>> Stashed changes
 from models.baseline import BaselineModel
 from utils.metrics import calculate_accuracy, calculate_map
+
+# [BỔ SUNG] Hàm lấy mẫu cố định (Phải giống hệt lúc Train)
+def fixed_sample_collate(batch):
+    num_samples = 50 # Số lượng ảnh SA quy định
+    
+    features_list = []
+    labels_list = []
+    masks_list = []
+    
+    for features, label in batch:
+        n = features.size(0)
+        
+        if n >= num_samples:
+            # Lấy mẫu ngẫu nhiên không lặp lại
+            indices = torch.randperm(n)[:num_samples]
+            sampled_features = features[indices]
+        else:
+            # Lặp lại ảnh ngẫu nhiên để bù vào phần thiếu
+            missing_count = num_samples - n
+            duplicate_indices = torch.randint(0, n, (missing_count,))
+            duplicated_features = features[duplicate_indices]
+            sampled_features = torch.cat([features, duplicated_features], dim=0)
+        
+        features_list.append(sampled_features)
+        labels_list.append(label)
+        
+        # Mask toàn số 1
+        masks_list.append(torch.ones(num_samples))
+        
+    return torch.stack(features_list), torch.tensor(labels_list), torch.stack(masks_list)
 
 def get_class_mapping(dataset_txt_path):
     classes = set()
@@ -32,7 +65,10 @@ def evaluate_model():
     DATASET_TXT = "./data/dataset.txt"
     TEST_TXT = "./data/test.txt"
     FEATURE_DIR = "./data/features"
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     MODEL_WEIGHTS = "../Release/best_baseline_model.pth" 
     
     BATCH_SIZE = 16
@@ -41,12 +77,18 @@ def evaluate_model():
     class_to_idx = get_class_mapping(DATASET_TXT)
     NUM_CLASSES = len(class_to_idx)
     test_labels_dict = load_pec_split(TEST_TXT, class_to_idx)
+    
     test_dataset = AlbumFeatureDataset(FEATURE_DIR, test_labels_dict)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=pad_album_features)
+    
+    # [ĐÃ SỬA]: Sử dụng fixed_sample_collate thay vì pad_album_features
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
+<<<<<<< Updated upstream
     # Khởi tạo BaselineModel tương tự như bên train
+=======
+>>>>>>> Stashed changes
     model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES, dropout=0.3)
     
     try:
