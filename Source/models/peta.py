@@ -1,37 +1,51 @@
 import torch
 import torch.nn as nn
+import math
 from .transformer import TransformerAttentionBlock
 
+def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
+    """
+    Hàm khởi tạo Truncated Normal (Cắt cụt phân phối chuẩn).
+    Được sử dụng trong Vision Transformer (ViT) và code gốc của PETA
+    để giúp mô hình ổn định trong những epoch đầu tiên.
+    """
+    with torch.no_grad():
+        l = (a - mean) / std
+        u = (b - mean) / std
+        
+        # Lấy mẫu ngẫu nhiên từ phân phối chuẩn
+        tensor.normal_()
+        
+        # Cắt các giá trị nằm ngoài khoảng [a, b]
+        tensor.clamp_(min=l, max=u)
+        
+        # Dịch chuyển và co giãn lại
+        tensor.mul_(std).add_(mean)
+        return tensor
+
 class PETAModel(nn.Module):
-    """
-    Mô hình tổng thể PETA (Photo Albums Event Recognition using Transformers Attention).
-    Phiên bản Chuẩn xác 100% theo bài báo: 
-    - Positional Encoding chỉ cộng vào ảnh.
-    - [CLS] Token nối vào sau khi đã cộng PE.
-    - Tích hợp Input Dropout chống Overfitting.
-    """
     def __init__(self, embed_dim=2048, num_classes=14, num_heads=8, num_layers=2, dropout=0.4, max_len=50):
         super(PETAModel, self).__init__()
         self.embed_dim = embed_dim
-
-        # 1. Classification Token ([CLS] Token)
-        # Vector đại diện cho toàn bộ album, sẽ thu thập thông tin qua Attention
-        self.cls_token = nn.Parameter(torch.randn(1, 1, embed_dim))
-
-        # 2. Learnable Positional Encoding
-        # ĐÃ SỬA: Kích thước bằng đúng max_len (50 ảnh), không cần cộng 1 cho [CLS]
-        self.pos_embed = nn.Parameter(torch.randn(1, max_len, embed_dim))
-
-        # 3. Input Dropout - Ép nhiễu vào dữ liệu để chống học vẹt (Overfitting)
+        
+        # 1. Khởi tạo [CLS] Token
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        
+        # 2. Khởi tạo Positional Encoding (ĐÃ SỬA: Kích thước là max_len + 1 để khớp cả [CLS])
+        self.pos_embed = nn.Parameter(torch.zeros(1, max_len + 1, embed_dim))
+        
         self.input_dropout = nn.Dropout(p=0.2)
-
-        # 4. Khối Lọc nhiễu bằng Transformer Attention
+        
+        # Áp dụng khởi tạo Truncated Normal (trick từ code gốc)
+        with torch.no_grad():
+            trunc_normal_(self.pos_embed, std=.02)
+            trunc_normal_(self.cls_token, std=.02)
+            
         self.transformer_layers = nn.ModuleList([
             TransformerAttentionBlock(embed_dim, num_heads, dropout) 
             for _ in range(num_layers)
         ])
         
-        # 5. Mạng tổng hợp và Phân loại (MLP Head)
         self.mlp_head = nn.Sequential(
             nn.Linear(embed_dim, 512),
             nn.BatchNorm1d(512),
@@ -39,39 +53,40 @@ class PETAModel(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(512, num_classes)
         )
+        
+        # Khởi tạo Linear Layers với std=0.02
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            with torch.no_grad():
+                trunc_normal_(m.weight, std=.02)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm) or isinstance(m, nn.BatchNorm1d):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
 
     def forward(self, features, mask):
-        """
-        Luồng truyền dữ liệu tiến (Forward Pass).
-        """
         B, N, _ = features.shape
         
-        # Bước 1: Cộng Positional Encoding cho 50 ảnh TRƯỚC
-        # (Theo đúng logic bài báo: z_s = x_s + e_pos_s)
-        x_images = features + self.pos_embed[:, :N, :]
-        
-        # Bước 2: Chuẩn bị [CLS] Token (Nhân bản để khớp kích thước Batch)
+        # [SỬA THEO TRÌNH TỰ GỐC]: Nối [CLS] VÀO TRƯỚC, SAU ĐÓ MỚI CỘNG VỊ TRÍ
         cls_tokens = self.cls_token.expand(B, -1, -1)
+        x = torch.cat((cls_tokens, features), dim=1) # Nối [CLS] vào chuỗi N ảnh
         
-        # Bước 3: Nối [CLS] vào ĐẦU chuỗi ảnh (SAU KHI ĐÃ CỘNG VỊ TRÍ)
-        # Kích thước x lúc này là (Batch, N + 1, embed_dim)
-        x = torch.cat((cls_tokens, x_images), dim=1)
+        # Cộng Positional Encoding cho toàn bộ (N+1) tokens
+        # x.shape = (B, N+1, embed_dim)
+        x = x + self.pos_embed[:, :(N + 1), :]
         
-        # Bước 4: Áp dụng Dropout cho đầu vào trước khi đưa vào khối Transformer
         x = self.input_dropout(x)
         
-        # Bước 5: Cập nhật Mask (Thêm 1 vị trí hợp lệ cho [CLS] ở cột đầu tiên)
         cls_mask = torch.ones(B, 1, dtype=mask.dtype, device=mask.device)
         extended_mask = torch.cat((cls_mask, mask), dim=1)
         
-        # Bước 6: Đi qua các lớp Transformer Attention
         for layer in self.transformer_layers:
-            x, attn_weights = layer(x, extended_mask)
-        
-        # Bước 7: Trích xuất vector đại diện album (Chỉ lấy [CLS] token ở Index 0)
-        v_album = x[:, 0, :]
-        
-        # Bước 8: Phân loại sự kiện
-        logits = self.mlp_head(v_album)
+            x, _ = layer(x, extended_mask)
+            
+        v_cls = x[:, 0, :]
+        logits = self.mlp_head(v_cls)
          
         return logits
