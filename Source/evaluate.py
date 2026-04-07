@@ -89,7 +89,7 @@ def evaluate_model():
     # 3. Khởi tạo mô hình & Tải trọng số (Load Weights)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
-    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=6, dropout=0.4, max_len=NUM_SAMPLES)
+    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.4, max_len=NUM_SAMPLES)
     
     try:
         # Nạp trọng số đã học vào mô hình

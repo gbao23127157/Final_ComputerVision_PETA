@@ -18,9 +18,14 @@ def fixed_sample_collate(batch):
     
     for features, label in batch:
         n = features.size(0)
+        
+        # [THÊM AUGMENTATION]: Xáo trộn ngẫu nhiên toàn bộ ảnh trước khi cắt/lặp lại
+        # Giúp Transformer không bị "học vẹt" thứ tự ảnh
+        indices = torch.randperm(n)
+        features = features[indices]
+        
         if n >= num_samples:
-            indices = torch.randperm(n)[:num_samples]
-            sampled_features = features[indices]
+            sampled_features = features[:num_samples]
         else:
             missing_count = num_samples - n
             duplicate_indices = torch.randint(0, n, (missing_count,))
@@ -85,12 +90,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
         logger.info(f"Train - Loss: {train_loss:.4f} | Accuracy: {train_acc:.4f} | mAP: {train_map:.4f}")
 
+        # Đánh giá trực tiếp trên tập Test 140 mẫu (giống bài báo gốc)
         model.eval()
         val_loss = 0.0
         val_preds, val_targets = [], []
 
         with torch.no_grad():
-            for features, labels, masks in tqdm(val_loader, desc="Xác thực", leave=False):
+            for features, labels, masks in tqdm(val_loader, desc="Xác thực (Test set)", leave=False):
                 features, labels, masks = features.to(device), labels.to(device), masks.to(device)
                 
                 outputs = model(features, masks)
@@ -106,9 +112,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         val_acc = calculate_accuracy(val_preds, val_targets)
         val_map = calculate_map(val_preds, val_targets, num_classes)
 
-        logger.info(f"Val - Loss: {val_loss:.4f} | Accuracy: {val_acc:.4f} | mAP: {val_map:.4f}")
+        logger.info(f"Test - Loss: {val_loss:.4f} | Accuracy: {val_acc:.4f} | mAP: {val_map:.4f}")
 
-        # [ĐÃ SỬA]: Scheduler CosineAnnealing cần step ở mỗi epoch không phụ thuộc vào val_acc
         scheduler.step()
         current_lr = optimizer.param_groups[0]['lr']
         logger.info(f"Learning Rate hiện tại: {current_lr:.6f}")
@@ -122,46 +127,49 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
 if __name__ == "__main__":
     FEATURE_DIR = "./data/features"
-    BATCH_SIZE = 16
-    NUM_EPOCHS = 30 
+    BATCH_SIZE = 16 
+    NUM_EPOCHS = 30 # Tác giả train khoảng 30 epochs
     NUM_CLASSES = 14
-    LEARNING_RATE = 1e-4
-    NUM_SAMPLES = 50 # Giữ chuẩn 50 ảnh
+    LEARNING_RATE = 0.01 # Bắt buộc phải dùng 0.01 khi xài SGD
+    NUM_SAMPLES = 50 
     LOG_PATH = "../Docs/training_log.txt"
     SAVE_PATH = "../Release/best_peta_model.pth"
 
     logger = setup_logger(LOG_PATH)
-    logger.info("Khởi động kịch bản huấn luyện PETA (Max Settings)")
+    logger.info("Khởi động kịch bản huấn luyện PETA (Cấu hình Thực nghiệm gốc 100%)")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     DATASET_TXT = "./data/dataset.txt"
-    TRAIN_TXT = "./data/train.txt"
+    TRAIN_TXT = "./data/train.txt" 
+    TEST_TXT = "./data/test.txt"   
     
     class_to_idx = get_class_mapping(DATASET_TXT)
+    
+    # [ĐÃ SỬA]: Ép khuôn đọc đúng 420 mẫu Train và 140 mẫu Test
     train_labels_dict = load_pec_split(TRAIN_TXT, class_to_idx)
+    test_labels_dict = load_pec_split(TEST_TXT, class_to_idx)
     
-    full_train_dataset = AlbumFeatureDataset(FEATURE_DIR, train_labels_dict)
-    
-    train_size = int(0.8 * len(full_train_dataset))
-    val_size = len(full_train_dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(full_train_dataset, [train_size, val_size])
+    train_dataset = AlbumFeatureDataset(FEATURE_DIR, train_labels_dict)
+    val_dataset = AlbumFeatureDataset(FEATURE_DIR, test_labels_dict)
+
+    logger.info(f"Dữ liệu ép chuẩn: Train: {len(train_dataset)} albums | Test: {len(val_dataset)} albums")
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
-    # [CẬP NHẬT MAX SETTINGS]: num_layers = 6 (Khớp kiến trúc Alibaba-MIIL)
-    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=6, dropout=0.4, max_len=NUM_SAMPLES)
+    # [ĐÃ SỬA]: Giữ đúng 2 layers cấu trúc nông
+    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.4, max_len=NUM_SAMPLES)
     model = model.to(device)
 
-    # Thêm Label Smoothing nhẹ để mô hình không quá "kiêu ngạo"
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.05)
+    # [ĐÃ SỬA]: Bỏ label_smoothing
+    criterion = nn.CrossEntropyLoss()
     
-    # [CẬP NHẬT MAX SETTINGS]: Dùng AdamW với weight_decay
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
+    # [ĐÃ SỬA]: Dùng SGD kết hợp Momentum
+    optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=5e-4)
     
-    # [CẬP NHẬT MAX SETTINGS]: Dùng đường cong giảm Learning Rate Cosine
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
+    # [ĐÃ SỬA]: Giảm Learning Rate 10 lần ở các Epoch 15 và 25
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[15, 25], gamma=0.1)
 
     os.makedirs("../Release", exist_ok=True)
 
