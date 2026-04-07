@@ -19,7 +19,7 @@ def fixed_sample_collate(batch):
     for features, label in batch:
         n = features.size(0)
         
-        # Xáo trộn ngẫu nhiên toàn bộ ảnh trước khi cắt/lặp lại
+        # Trộn ngẫu nhiên toàn bộ ảnh trước khi lấy sample
         indices = torch.randperm(n)
         features = features[indices]
         
@@ -89,7 +89,6 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
         logger.info(f"Train - Loss: {train_loss:.4f} | Accuracy: {train_acc:.4f} | mAP: {train_map:.4f}")
 
-        # Đánh giá trực tiếp trên tập Test 140 mẫu
         model.eval()
         val_loss = 0.0
         val_preds, val_targets = [], []
@@ -145,7 +144,6 @@ if __name__ == "__main__":
     
     class_to_idx = get_class_mapping(DATASET_TXT)
     
-    # Chia 420 mẫu Train và 140 mẫu Test
     train_labels_dict = load_pec_split(TRAIN_TXT, class_to_idx)
     test_labels_dict = load_pec_split(TEST_TXT, class_to_idx)
     

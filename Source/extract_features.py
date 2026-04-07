@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image
-from tqdm import tqdm # Thư viện tạo thanh tiến trình (progress bar) trực quan
+from tqdm import tqdm
 
 def get_feature_extractor(device):
     """
@@ -20,8 +20,6 @@ def get_feature_extractor(device):
     
     model.fc = nn.Identity()
     
-    # Đẩy mô hình lên GPU (nếu có) và thiết lập chế độ evaluate (eval)
-    # Chế độ eval() giúp tắt Dropout và cố định BatchNorm, đảm bảo tính nhất quán khi trích xuất
     model = model.to(device)
     model.eval()
     
@@ -102,7 +100,6 @@ def extract_and_save_features(raw_data_dir, output_feature_dir):
             torch.save(album_tensor, save_path)
 
 if __name__ == "__main__":
-    # Lấy thư mục chứa file extract_features.py hiện tại 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     
     RAW_DATA_DIRECTORY = os.path.join(BASE_DIR, "data", "raw_albums")

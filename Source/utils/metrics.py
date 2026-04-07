@@ -44,7 +44,6 @@ def calculate_map(predictions, targets, num_classes):
     probs = F.softmax(predictions, dim=1).detach().cpu().numpy()
     
     # Chuyển đổi nhãn thực tế sang dạng One-Hot Encoding
-    # Ví dụ: nhãn 2, num_classes=5 -> [0, 0, 1, 0, 0]
     target_np = targets.cpu().numpy()
     targets_one_hot = np.zeros((target_np.size, num_classes))
     targets_one_hot[np.arange(target_np.size), target_np] = 1

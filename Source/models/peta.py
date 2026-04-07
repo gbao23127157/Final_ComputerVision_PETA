@@ -18,7 +18,6 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
         # Cắt các giá trị nằm ngoài khoảng [a, b]
         tensor.clamp_(min=l, max=u)
         
-        # Dịch chuyển và co giãn lại
         tensor.mul_(std).add_(mean)
         return tensor
 

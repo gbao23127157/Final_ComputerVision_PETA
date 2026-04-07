@@ -10,7 +10,6 @@ from models.baseline import BaselineModel
 from utils.metrics import calculate_accuracy, calculate_map
 from utils.logger import setup_logger
 
-# Dùng chung cơ chế Fixed Sample (50 ảnh) như PETA
 def fixed_sample_collate(batch):
     num_samples = 50 
     features_list = []
@@ -127,14 +126,12 @@ if __name__ == "__main__":
     val_size = len(full_train_dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(full_train_dataset, [train_size, val_size])
 
-    # Sử dụng fixed_sample_collate thay vì pad_album_features
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
     model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES, dropout=0.3)
     model = model.to(device)
 
-    # Dùng cấu hình như PETA
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     
