@@ -51,7 +51,7 @@ def load_pec_split(split_txt_path, class_to_idx):
                 
     return labels_dict
 
-# ĐÃ SỬA: Thêm tham số scheduler vào hàm train_model
+# Thêm tham số scheduler vào hàm train_model
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs, num_classes, logger, save_path):
     """
     Hàm thực hiện vòng lặp huấn luyện và đánh giá mô hình qua nhiều epoch.
@@ -127,7 +127,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
         logger.info(f"Val - Loss: {val_loss:.4f} | Accuracy: {val_acc:.4f} | mAP: {val_map:.4f}")
 
-        # ĐÃ SỬA: Cập nhật scheduler dựa trên độ chính xác của tập validation
+        # Cập nhật scheduler dựa trên độ chính xác của tập validation
         scheduler.step(val_acc)
         
         # In ra Learning Rate hiện tại để tiện theo dõi
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     # Cấu hình siêu tham số (Hyperparameters)
     FEATURE_DIR = "./data/features"
     BATCH_SIZE = 16
-    # ĐÃ SỬA: Tăng số epoch lên 30 để có đủ thời gian cho Scheduler hoạt động
+    # Tăng số epoch lên 30 để có đủ thời gian cho Scheduler hoạt động
     NUM_EPOCHS = 30 
     NUM_CLASSES = 14 # Thay đổi tùy vào dataset (PEC hoặc CUFED)
     LEARNING_RATE = 1e-4
@@ -185,17 +185,17 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=pad_album_features)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=pad_album_features)
 
-    # ĐÃ SỬA: Tăng num_layers lên 2 và dropout lên 0.4 để chống Overfitting
+    # Tăng num_layers lên 2 và dropout lên 0.4 để chống Overfitting
     model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.4)
     model = model.to(device)
 
     # Cấu hình Loss, Optimizer và Scheduler
     criterion = nn.CrossEntropyLoss()
     
-    # ĐÃ SỬA: Dùng AdamW thay cho Adam và thêm weight_decay
+    # Dùng AdamW thay cho Adam và thêm weight_decay
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-2)
     
-    # ĐÃ SỬA: Khởi tạo Scheduler giảm Learning Rate nếu val_acc không tăng sau 3 epochs
+    # Khởi tạo Scheduler giảm Learning Rate nếu val_acc không tăng sau 3 epochs
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3, verbose=True)
 
     # Đảm bảo thư mục Release tồn tại để lưu mô hình

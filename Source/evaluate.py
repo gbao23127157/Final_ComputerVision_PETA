@@ -102,7 +102,6 @@ def evaluate_model():
     print(f"  Accuracy (Độ chính xác) : {test_acc:.4f} ({test_acc * 100:.2f}%)")
     print(f"  mAP (Mean Average Prec.): {test_map:.4f} ({test_map * 100:.2f}%)")
     print("="*50)
-    print("=> Hãy lấy 2 con số này đưa vào bảng báo cáo IEEE của bạn!")
 
 if __name__ == "__main__":
     evaluate_model()
