@@ -10,7 +10,7 @@ from models.baseline import BaselineModel
 from utils.metrics import calculate_accuracy, calculate_map
 from utils.logger import setup_logger
 
-# [BỔ SUNG] Dùng chung cơ chế Fixed Sample (50 ảnh) như PETA
+# Dùng chung cơ chế Fixed Sample (50 ảnh) như PETA
 def fixed_sample_collate(batch):
     num_samples = 50 
     features_list = []
@@ -108,10 +108,10 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
 if __name__ == "__main__":
     FEATURE_DIR = "./data/features"
     BATCH_SIZE = 16
-    NUM_EPOCHS = 20 # [ĐÃ ĐỒNG BỘ]: Khớp với PETA
+    NUM_EPOCHS = 20 
     NUM_CLASSES = 14 
     LEARNING_RATE = 1e-4
-    LOG_PATH = "../Docs/training_log_baseline.txt" # Đổi tên log file để không ghi đè PETA
+    LOG_PATH = "../Docs/training_log_baseline.txt" 
     SAVE_PATH = "../Release/best_baseline_model.pth"
 
     logger = setup_logger(LOG_PATH)
@@ -127,14 +127,14 @@ if __name__ == "__main__":
     val_size = len(full_train_dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(full_train_dataset, [train_size, val_size])
 
-    # [ĐÃ SỬA]: Sử dụng fixed_sample_collate thay vì pad_album_features
+    # Sử dụng fixed_sample_collate thay vì pad_album_features
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
     model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES, dropout=0.3)
     model = model.to(device)
 
-    # [ĐÃ ĐỒNG BỘ]: Dùng cấu hình Basic (Không có Label Smoothing) như PETA hiện tại
+    # Dùng cấu hình Basic như PETA
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     

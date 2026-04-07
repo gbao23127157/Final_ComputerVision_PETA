@@ -7,7 +7,7 @@ from data.dataset_loader import AlbumFeatureDataset
 from models.baseline import BaselineModel
 from utils.metrics import calculate_accuracy, calculate_map
 
-# [BỔ SUNG] Hàm lấy mẫu cố định (Phải giống hệt lúc Train)
+# Hàm lấy mẫu cố định 
 def fixed_sample_collate(batch):
     num_samples = 50 # Số lượng ảnh SA quy định
     
@@ -106,10 +106,10 @@ def evaluate_model():
     test_map = calculate_map(test_preds, test_targets, NUM_CLASSES)
     
     print("\n" + "="*50)
-    print(" BÁO CÁO KẾT QUẢ TRÊN TẬP TEST (BASELINE MODEL) ")
+    print(" BÁO CÁO KẾT QUẢ TRÊN TẬP TEST")
     print("="*50)
-    print(f"  Accuracy (Độ chính xác) : {test_acc:.4f} ({test_acc * 100:.2f}%)")
-    print(f"  mAP (Mean Average Prec.): {test_map:.4f} ({test_map * 100:.2f}%)")
+    print(f"  Accuracy : {test_acc:.4f}")
+    print(f"  mAP : {test_map:.4f}")
     print("="*50)
 
 if __name__ == "__main__":

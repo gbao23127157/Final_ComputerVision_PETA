@@ -31,12 +31,12 @@ class PETAModel(nn.Module):
         # 1. Khởi tạo [CLS] Token
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         
-        # 2. Khởi tạo Positional Encoding (ĐÃ SỬA: Kích thước là max_len + 1 để khớp cả [CLS])
+        # 2. Khởi tạo Positional Encoding
         self.pos_embed = nn.Parameter(torch.zeros(1, max_len + 1, embed_dim))
         
         self.input_dropout = nn.Dropout(p=0.2)
         
-        # Áp dụng khởi tạo Truncated Normal (trick từ code gốc)
+        # Khởi tạo Truncated Normal
         with torch.no_grad():
             trunc_normal_(self.pos_embed, std=.02)
             trunc_normal_(self.cls_token, std=.02)
@@ -69,8 +69,7 @@ class PETAModel(nn.Module):
 
     def forward(self, features, mask):
         B, N, _ = features.shape
-        
-        # [SỬA THEO TRÌNH TỰ GỐC]: Nối [CLS] VÀO TRƯỚC, SAU ĐÓ MỚI CỘNG VỊ TRÍ
+    
         cls_tokens = self.cls_token.expand(B, -1, -1)
         x = torch.cat((cls_tokens, features), dim=1) # Nối [CLS] vào chuỗi N ảnh
         

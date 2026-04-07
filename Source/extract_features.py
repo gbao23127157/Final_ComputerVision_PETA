@@ -23,7 +23,7 @@ def get_feature_extractor(device):
     # để output trả về là vector đặc trưng (kích thước 2048) thay vì xác suất 1000 lớp
     model.fc = nn.Identity()
     
-    # Đẩy mô hình lên GPU (nếu có) và thiết lập chế độ đánh giá (eval)
+    # Đẩy mô hình lên GPU (nếu có) và thiết lập chế độ evaluate (eval)
     # Chế độ eval() giúp tắt Dropout và cố định BatchNorm, đảm bảo tính nhất quán khi trích xuất
     model = model.to(device)
     model.eval()
@@ -75,7 +75,6 @@ def extract_and_save_features(raw_data_dir, output_feature_dir):
         album_path = os.path.join(raw_data_dir, album_name)
         image_files = [img for img in os.listdir(album_path) if img.lower().endswith(('.png', '.jpg', '.jpeg'))]
         
-        # Nếu album rỗng thì bỏ qua
         if not image_files:
             continue
         
@@ -86,7 +85,7 @@ def extract_and_save_features(raw_data_dir, output_feature_dir):
             for img_name in image_files:
                 img_path = os.path.join(album_path, img_name)
                 try:
-                    # Mở ảnh và chuyển về hệ màu RGB (tránh lỗi với ảnh xám hoặc RGBA)
+                    # Mở ảnh và chuyển về hệ màu RGB 
                     img = Image.open(img_path).convert('RGB')
                     
                     # Áp dụng tiền xử lý và thêm chiều batch (từ C,H,W thành 1,C,H,W)
@@ -106,7 +105,6 @@ def extract_and_save_features(raw_data_dir, output_feature_dir):
             save_path = os.path.join(output_feature_dir, f"{album_name}.pt")
             torch.save(album_tensor, save_path)
 
-# ====== Khối lệnh chạy chính ======
 if __name__ == "__main__":
     # Lấy thư mục chứa file extract_features.py hiện tại 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))

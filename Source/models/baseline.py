@@ -4,12 +4,12 @@ import torch.nn as nn
 class BaselineModel(nn.Module):
     """
     Mô hình cơ sở (Baseline): 
-    Chỉ dùng Average Pooling gộp đặc trưng tất cả các ảnh lại, KHÔNG CÓ khối Transformer.
+    Chỉ dùng Average Pooling gộp đặc trưng tất cả các ảnh lại, không có khối Transformer.
     """
     def __init__(self, embed_dim=2048, num_classes=14, dropout=0.3):
         super(BaselineModel, self).__init__()
         
-        # Khối phân loại (MLP Head) - Kiến trúc giống hệt PETA để so sánh công bằng
+        # Khối phân loại (MLP Head)
         self.classifier = nn.Sequential(
             nn.Linear(embed_dim, 512),
             nn.BatchNorm1d(512),
@@ -30,7 +30,7 @@ class BaselineModel(nn.Module):
         # Tính tổng các ảnh hợp lệ
         sum_features = valid_features.sum(dim=1) 
         
-        # Đếm số lượng ảnh hợp lệ (tránh chia cho 0 bằng cách dùng clamp)
+        # Đếm số lượng ảnh hợp lệ
         valid_counts = masks.sum(dim=1, keepdim=True).clamp(min=1e-9) 
         
         # Chia trung bình -> Vector đại diện cho album: (Batch, 2048)

@@ -7,7 +7,7 @@ from data.dataset_loader import AlbumFeatureDataset
 from models.peta import PETAModel
 from utils.metrics import calculate_accuracy, calculate_map
 
-# [BỔ SUNG] Hàm lấy mẫu cố định (Phải giống hệt lúc Train)
+# Hàm lấy mẫu cố định
 def fixed_sample_collate(batch):
     num_samples = 50 # Số lượng ảnh SA quy định
     
@@ -69,7 +69,7 @@ def evaluate_model():
     
     # Siêu tham số
     BATCH_SIZE = 16
-    NUM_SAMPLES = 50 # ĐỒNG BỘ: Số lượng ảnh / album
+    NUM_SAMPLES = 50 
 
     # 2. Chuẩn bị dữ liệu Test
     print("Đang chuẩn bị dữ liệu Test...")
@@ -81,7 +81,6 @@ def evaluate_model():
     # Khởi tạo Dataset và DataLoader cho tập Test
     test_dataset = AlbumFeatureDataset(FEATURE_DIR, test_labels_dict)
     
-    # ĐÃ SỬA: Dùng fixed_sample_collate
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
     
     print(f"Đã nạp {len(test_dataset)} albums từ tập Test (Dữ liệu hoàn toàn mới).")
@@ -105,7 +104,6 @@ def evaluate_model():
 
     model.to(device)
     
-    # Bật chế độ đánh giá
     model.eval()
     
     # 4. Vòng lặp dự đoán trên tập Test
@@ -124,7 +122,7 @@ def evaluate_model():
             test_preds.append(outputs.cpu())
             test_targets.append(labels)
             
-    # 5. Tính toán Độ đo (Metrics) tổng thể
+    # 5. Tính toán Độ đo tổng thể
     test_preds = torch.cat(test_preds, dim=0)
     test_targets = torch.cat(test_targets, dim=0)
     
@@ -133,12 +131,11 @@ def evaluate_model():
     
     # 6. In Báo cáo kết quả
     print("\n" + "="*50)
-    print(" BÁO CÁO KẾT QUẢ TRÊN TẬP TEST (UNSEEN DATA) ")
+    print(" BÁO CÁO KẾT QUẢ TRÊN TẬP TEST  ")
     print("="*50)
-    print(f"  Accuracy (Độ chính xác) : {test_acc:.4f} ({test_acc * 100:.2f}%)")
-    print(f"  mAP (Mean Average Prec.): {test_map:.4f} ({test_map * 100:.2f}%)")
+    print(f"  Accuracy : {test_acc:.4f}")
+    print(f"  mAP : {test_map:.4f}")
     print("="*50)
-    print("=> Hãy lấy 2 con số này đưa vào bảng báo cáo IEEE của bạn!")
 
 if __name__ == "__main__":
     evaluate_model()

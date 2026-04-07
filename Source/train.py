@@ -19,8 +19,7 @@ def fixed_sample_collate(batch):
     for features, label in batch:
         n = features.size(0)
         
-        # [THÊM AUGMENTATION]: Xáo trộn ngẫu nhiên toàn bộ ảnh trước khi cắt/lặp lại
-        # Giúp Transformer không bị "học vẹt" thứ tự ảnh
+        # Xáo trộn ngẫu nhiên toàn bộ ảnh trước khi cắt/lặp lại
         indices = torch.randperm(n)
         features = features[indices]
         
@@ -90,13 +89,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
         logger.info(f"Train - Loss: {train_loss:.4f} | Accuracy: {train_acc:.4f} | mAP: {train_map:.4f}")
 
-        # Đánh giá trực tiếp trên tập Test 140 mẫu (giống bài báo gốc)
+        # Đánh giá trực tiếp trên tập Test 140 mẫu
         model.eval()
         val_loss = 0.0
         val_preds, val_targets = [], []
 
         with torch.no_grad():
-            for features, labels, masks in tqdm(val_loader, desc="Xác thực (Test set)", leave=False):
+            for features, labels, masks in tqdm(val_loader, desc="Xác thực", leave=False):
                 features, labels, masks = features.to(device), labels.to(device), masks.to(device)
                 
                 outputs = model(features, masks)
@@ -128,15 +127,15 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 if __name__ == "__main__":
     FEATURE_DIR = "./data/features"
     BATCH_SIZE = 16 
-    NUM_EPOCHS = 30 # Tác giả train khoảng 30 epochs
+    NUM_EPOCHS = 30 
     NUM_CLASSES = 14
-    LEARNING_RATE = 0.01 # Bắt buộc phải dùng 0.01 khi xài SGD
+    LEARNING_RATE = 0.01
     NUM_SAMPLES = 50 
     LOG_PATH = "../Docs/training_log.txt"
     SAVE_PATH = "../Release/best_peta_model.pth"
 
     logger = setup_logger(LOG_PATH)
-    logger.info("Khởi động kịch bản huấn luyện PETA (Cấu hình Thực nghiệm gốc 100%)")
+    logger.info("Khởi động huấn luyện PETA ")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
@@ -146,7 +145,7 @@ if __name__ == "__main__":
     
     class_to_idx = get_class_mapping(DATASET_TXT)
     
-    # [ĐÃ SỬA]: Ép khuôn đọc đúng 420 mẫu Train và 140 mẫu Test
+    # Chia 420 mẫu Train và 140 mẫu Test
     train_labels_dict = load_pec_split(TRAIN_TXT, class_to_idx)
     test_labels_dict = load_pec_split(TEST_TXT, class_to_idx)
     
@@ -158,17 +157,15 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
-    # [ĐÃ SỬA]: Giữ đúng 2 layers cấu trúc nông
     model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.5, max_len=NUM_SAMPLES)
     model = model.to(device)
 
-    # [ĐÃ SỬA]: Bỏ label_smoothing
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     
-    # [ĐÃ SỬA]: Dùng SGD kết hợp Momentum
+    # Dùng SGD kết hợp Momentum
     optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=1e-3)
     
-    # [ĐÃ SỬA]: Giảm Learning Rate 10 lần ở các Epoch 15 và 25
+    # Giảm Learning Rate 10 lần ở các Epoch 15 và 25
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[15, 25], gamma=0.1)
 
     os.makedirs("../Release", exist_ok=True)
