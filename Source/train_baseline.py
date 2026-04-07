@@ -5,13 +5,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-<<<<<<< Updated upstream
-# import từ các module đã build
 from data.dataset_loader import AlbumFeatureDataset
-from data.preprocess import pad_album_features
-=======
-from data.dataset_loader import AlbumFeatureDataset
->>>>>>> Stashed changes
 from models.baseline import BaselineModel
 from utils.metrics import calculate_accuracy, calculate_map
 from utils.logger import setup_logger
@@ -117,11 +111,7 @@ if __name__ == "__main__":
     NUM_EPOCHS = 20 # [ĐÃ ĐỒNG BỘ]: Khớp với PETA
     NUM_CLASSES = 14 
     LEARNING_RATE = 1e-4
-<<<<<<< Updated upstream
-    LOG_PATH = "../Docs/training_log.txt"
-=======
     LOG_PATH = "../Docs/training_log_baseline.txt" # Đổi tên log file để không ghi đè PETA
->>>>>>> Stashed changes
     SAVE_PATH = "../Release/best_baseline_model.pth"
 
     logger = setup_logger(LOG_PATH)
@@ -141,10 +131,6 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
-<<<<<<< Updated upstream
-    # Khởi tạo BaselineModel với các tham số mới
-=======
->>>>>>> Stashed changes
     model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES, dropout=0.3)
     model = model.to(device)
 

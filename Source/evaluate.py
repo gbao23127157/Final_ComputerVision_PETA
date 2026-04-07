@@ -89,11 +89,7 @@ def evaluate_model():
     # 3. Khởi tạo mô hình & Tải trọng số (Load Weights)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
-<<<<<<< Updated upstream
-    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.4)
-=======
     model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=6, dropout=0.4, max_len=NUM_SAMPLES)
->>>>>>> Stashed changes
     
     try:
         # Nạp trọng số đã học vào mô hình
@@ -142,6 +138,7 @@ def evaluate_model():
     print(f"  Accuracy (Độ chính xác) : {test_acc:.4f} ({test_acc * 100:.2f}%)")
     print(f"  mAP (Mean Average Prec.): {test_map:.4f} ({test_map * 100:.2f}%)")
     print("="*50)
+    print("=> Hãy lấy 2 con số này đưa vào bảng báo cáo IEEE của bạn!")
 
 if __name__ == "__main__":
     evaluate_model()

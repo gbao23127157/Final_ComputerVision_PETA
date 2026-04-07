@@ -5,10 +5,6 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-<<<<<<< Updated upstream
-# import từ các module đã build
-=======
->>>>>>> Stashed changes
 from data.dataset_loader import AlbumFeatureDataset
 from models.peta import PETAModel
 from utils.metrics import calculate_accuracy, calculate_map
@@ -57,10 +53,6 @@ def load_pec_split(split_txt_path, class_to_idx):
                 labels_dict[album_folder_name] = class_to_idx[class_name]
     return labels_dict
 
-<<<<<<< Updated upstream
-# Thêm tham số scheduler vào hàm train_model
-=======
->>>>>>> Stashed changes
 def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs, num_classes, logger, save_path):
     best_val_acc = 0.0
 
@@ -116,15 +108,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
         logger.info(f"Val - Loss: {val_loss:.4f} | Accuracy: {val_acc:.4f} | mAP: {val_map:.4f}")
 
-<<<<<<< Updated upstream
-        # Cập nhật scheduler dựa trên độ chính xác của tập validation
-        scheduler.step(val_acc)
-        
-        # In ra Learning Rate hiện tại để tiện theo dõi
-=======
         # [ĐÃ SỬA]: Scheduler CosineAnnealing cần step ở mỗi epoch không phụ thuộc vào val_acc
         scheduler.step()
->>>>>>> Stashed changes
         current_lr = optimizer.param_groups[0]['lr']
         logger.info(f"Learning Rate hiện tại: {current_lr:.6f}")
 
@@ -137,12 +122,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
 if __name__ == "__main__":
     FEATURE_DIR = "./data/features"
-<<<<<<< Updated upstream
-    BATCH_SIZE = 16
-    # Tăng số epoch lên 30 để có đủ thời gian cho Scheduler hoạt động
-=======
     BATCH_SIZE = 16 # Nếu bị Out of Memory, giảm xuống 8
->>>>>>> Stashed changes
     NUM_EPOCHS = 30 
     NUM_CLASSES = 14
     LEARNING_RATE = 1e-4
@@ -170,35 +150,18 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
-<<<<<<< Updated upstream
-    # 4. Khởi tạo DataLoader
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=pad_album_features)
-    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=pad_album_features)
-
-    # Tăng num_layers lên 2 và dropout lên 0.4 để chống Overfitting
-    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.4)
-=======
     # [CẬP NHẬT MAX SETTINGS]: num_layers = 6 (Khớp kiến trúc Alibaba-MIIL)
     model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=6, dropout=0.4, max_len=NUM_SAMPLES)
->>>>>>> Stashed changes
     model = model.to(device)
 
     # Thêm Label Smoothing nhẹ để mô hình không quá "kiêu ngạo"
     criterion = nn.CrossEntropyLoss(label_smoothing=0.05)
     
-<<<<<<< Updated upstream
-    # Dùng AdamW thay cho Adam và thêm weight_decay
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-2)
-    
-    # Khởi tạo Scheduler giảm Learning Rate nếu val_acc không tăng sau 3 epochs
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3, verbose=True)
-=======
     # [CẬP NHẬT MAX SETTINGS]: Dùng AdamW với weight_decay
     optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
     
     # [CẬP NHẬT MAX SETTINGS]: Dùng đường cong giảm Learning Rate Cosine
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
->>>>>>> Stashed changes
 
     os.makedirs("../Release", exist_ok=True)
 
@@ -208,11 +171,7 @@ if __name__ == "__main__":
         val_loader=val_loader,
         criterion=criterion,
         optimizer=optimizer,
-<<<<<<< Updated upstream
-        scheduler=scheduler, # Truyền thêm scheduler vào hàm
-=======
         scheduler=scheduler,
->>>>>>> Stashed changes
         device=device,
         num_epochs=NUM_EPOCHS,
         num_classes=NUM_CLASSES,
