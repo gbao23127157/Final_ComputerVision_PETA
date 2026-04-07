@@ -122,7 +122,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 
 if __name__ == "__main__":
     FEATURE_DIR = "./data/features"
-    BATCH_SIZE = 16 # Nếu bị Out of Memory, giảm xuống 8
+    BATCH_SIZE = 16
     NUM_EPOCHS = 30 
     NUM_CLASSES = 14
     LEARNING_RATE = 1e-4
