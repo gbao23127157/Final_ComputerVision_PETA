@@ -163,10 +163,10 @@ if __name__ == "__main__":
     model = model.to(device)
 
     # [ĐÃ SỬA]: Bỏ label_smoothing
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     
     # [ĐÃ SỬA]: Dùng SGD kết hợp Momentum
-    optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=5e-4)
+    optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=1e-3)
     
     # [ĐÃ SỬA]: Giảm Learning Rate 10 lần ở các Epoch 15 và 25
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[15, 25], gamma=0.1)
