@@ -69,13 +69,24 @@ def evaluate_model(num_runs=5):
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.5, max_len=NUM_SAMPLES)
+    
+    # [ĐÃ CẬP NHẬT] 
+    # 1. embed_dim=512 (Chuẩn vector của CLIP)
+    # 2. Xóa max_len (Mô hình Tập hợp Ngữ nghĩa không cần Positional Encoding)
+    model = PETAModel(
+        embed_dim=512, 
+        num_classes=NUM_CLASSES, 
+        num_heads=8, 
+        num_layers=2, 
+        dropout=0.5
+    )
     
     try:
         model.load_state_dict(torch.load(MODEL_WEIGHTS, map_location=device))
         print("-> Đã tải thành công file trọng số best_peta_model.pth!")
     except Exception as e:
         print(f"LỖI TẢI TRỌNG SỐ: {e}")
+        print("Gợi ý: Hãy chắc chắn bạn đã chạy lại file train.py để tạo ra trọng số (weights) mới khớp với kiến trúc CLIP 512 chiều.")
         return
 
     model.to(device)

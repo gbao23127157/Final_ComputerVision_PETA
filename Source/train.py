@@ -155,7 +155,13 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
-    model = PETAModel(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, dropout=0.5, max_len=NUM_SAMPLES)
+    model = PETAModel(
+        embed_dim=512, 
+        num_classes=NUM_CLASSES, 
+        num_heads=8, 
+        num_layers=2, 
+        dropout=0.4
+    )
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)

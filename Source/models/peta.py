@@ -1,42 +1,30 @@
 import torch
 import torch.nn as nn
-import math
 from .transformer import TransformerAttentionBlock
 
 def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
-    """
-    Hàm khởi tạo Truncated Normal.
-    Được sử dụng trong Vision Transformer (ViT)
-    """
     with torch.no_grad():
         l = (a - mean) / std
         u = (b - mean) / std
-        
-        # Lấy mẫu ngẫu nhiên từ phân phối chuẩn
         tensor.normal_()
-        
-        # Cắt các giá trị nằm ngoài khoảng [a, b]
         tensor.clamp_(min=l, max=u)
-        
         tensor.mul_(std).add_(mean)
         return tensor
 
 class PETAModel(nn.Module):
-    def __init__(self, embed_dim=2048, num_classes=14, num_heads=8, num_layers=2, dropout=0.4, max_len=50):
+    # Đã giảm embed_dim xuống 512 (Chuẩn của CLIP ViT-B/32)
+    def __init__(self, embed_dim=512, num_classes=14, num_heads=8, num_layers=2, dropout=0.4):
         super(PETAModel, self).__init__()
         self.embed_dim = embed_dim
         
-        # 1. Khởi tạo [CLS] Token
+        # 1. Chỉ giữ lại [CLS] Token
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         
-        # 2. Khởi tạo Positional Encoding
-        self.pos_embed = nn.Parameter(torch.zeros(1, max_len + 1, embed_dim))
+        # [ĐÃ GỠ BỎ]: self.pos_embed = ... (Positional Encoding)
         
         self.input_dropout = nn.Dropout(p=0.2)
         
-        # Khởi tạo Truncated Normal
         with torch.no_grad():
-            trunc_normal_(self.pos_embed, std=.02)
             trunc_normal_(self.cls_token, std=.02)
             
         self.transformer_layers = nn.ModuleList([
@@ -52,7 +40,6 @@ class PETAModel(nn.Module):
             nn.Linear(512, num_classes)
         )
         
-        # Khởi tạo Linear Layers với std=0.02
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
@@ -69,12 +56,9 @@ class PETAModel(nn.Module):
         B, N, _ = features.shape
     
         cls_tokens = self.cls_token.expand(B, -1, -1)
-        x = torch.cat((cls_tokens, features), dim=1) # Nối [CLS] vào chuỗi N ảnh
-        
-        # Cộng Positional Encoding cho toàn bộ (N+1) tokens
-        # x.shape = (B, N+1, embed_dim)
-        x = x + self.pos_embed[:, :(N + 1), :]
-        
+        # Nối [CLS] vào chuỗi ảnh. Lúc này, x chỉ là một tập hợp các set ngữ nghĩa.
+        x = torch.cat((cls_tokens, features), dim=1) 
+                
         x = self.input_dropout(x)
         
         cls_mask = torch.ones(B, 1, dtype=mask.dtype, device=mask.device)
