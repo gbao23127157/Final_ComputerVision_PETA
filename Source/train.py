@@ -127,14 +127,14 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
             torch.save(model.state_dict(), save_path)
             logger.info(f"-> Đã lưu mô hình tốt nhất với Accuracy: {best_val_acc:.4f} tại {save_path}")
 
-    logger.info("Hoàn tất quá trình huấn luyện!")
+    logger.info("Hoàn tất train!")
 
 if __name__ == "__main__":
     # Thiết lập tham số dòng lệnh
-    parser = argparse.ArgumentParser(description="Huấn luyện các phiên bản mô hình PETA")
+    parser = argparse.ArgumentParser(description="Train các phiên bản mô hình PETA")
     parser.add_argument('--mode', type=str, default='cross', 
                         choices=['baseline', 'peta_base', 'peta_clip', 'peta_cross'],
-                        help='Chọn phiên bản mô hình để huấn luyện')
+                        help='Chọn phiên bản mô hình')
     args = parser.parse_args()
 
     BATCH_SIZE = 16 
@@ -148,9 +148,9 @@ if __name__ == "__main__":
     LOG_PATH = f"./logs/training_log_{args.mode}.txt"
 
     logger = setup_logger(LOG_PATH)
-    logger.info(f"Khởi động huấn luyện CHẾ ĐỘ: {args.mode.upper()}")
+    logger.info(f"Train model: {args.mode.upper()}")
 
-    # ĐIỀU PHỐI MÔ HÌNH VÀ DỮ LIỆU
+    # CHỌN MÔ HÌNH VÀ DỮ LIỆU
     if args.mode == 'baseline':
         FEATURE_DIR = "./data/features/resnet"
         SAVE_PATH = "./weights/baseline_weights.pth"
@@ -171,7 +171,7 @@ if __name__ == "__main__":
         SAVE_PATH = "./weights/peta_cross_weights.pth"
         model = PETACross(embed_dim=512, num_classes=NUM_CLASSES, num_heads=8, num_layers=2)
 
-    logger.info(f"Sử dụng thư mục đặc trưng: {FEATURE_DIR}")
+    logger.info(f"Sử dụng folder features: {FEATURE_DIR}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     train_dataset = AlbumFeatureDataset(FEATURE_DIR, train_labels_dict)
     val_dataset = AlbumFeatureDataset(FEATURE_DIR, test_labels_dict)
 
-    logger.info(f"Dữ liệu ép chuẩn: Train: {len(train_dataset)} albums | Test: {len(val_dataset)} albums")
+    logger.info(f"Dữ liệu: Train: {len(train_dataset)} albums")
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)

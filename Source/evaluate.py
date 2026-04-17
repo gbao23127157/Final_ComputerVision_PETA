@@ -62,7 +62,7 @@ def evaluate_model():
     parser = argparse.ArgumentParser(description="Đánh giá 4 phiên bản mô hình")
     parser.add_argument('--mode', type=str, default='cross', 
                         choices=['baseline', 'peta_base', 'peta_clip', 'peta_cross'],
-                        help='Chọn phiên bản mô hình để đánh giá')
+                        help='Chọn phiên bản mô hình')
     parser.add_argument('--runs', type=int, default=5, 
                         help='Số lần đánh giá để lấy trung bình')
     args = parser.parse_args()
@@ -73,7 +73,7 @@ def evaluate_model():
     NUM_SAMPLES = 50 
 
     print("="*55)
-    print(f" ĐANG ĐÁNH GIÁ CHẾ ĐỘ: {args.mode.upper()}")
+    print(f" Test: {args.mode.upper()}")
     print("="*55)
 
     class_to_idx = get_class_mapping(DATASET_TXT)
@@ -110,7 +110,7 @@ def evaluate_model():
     
     try:
         model.load_state_dict(torch.load(MODEL_WEIGHTS, map_location=device))
-        print(f"-> Đã tải thành công trọng số: {MODEL_WEIGHTS}")
+        print(f"-> Đã tải thành công mô hình: {MODEL_WEIGHTS}")
     except Exception as e:
         print(f"LỖI TẢI TRỌNG SỐ: {e}")
         print(f"Hãy chạy lệnh `python train.py --mode {args.mode}` trước để tạo file trọng số.")
@@ -142,7 +142,7 @@ def evaluate_model():
         
         acc_list.append(test_acc)
         map_list.append(test_map)
-        print(f"   Hoàn thành Lần {run+1} | Accuracy: {test_acc:.2f}% | mAP: {test_map:.2f}%")
+        print(f"   Lần {run+1} | Accuracy: {test_acc:.2f}% | mAP: {test_map:.2f}%")
 
     mean_acc, std_acc = np.mean(acc_list), np.std(acc_list)
     mean_map, std_map = np.mean(map_list), np.std(map_list)
