@@ -120,8 +120,6 @@ def evaluate_model():
     
     acc_list = []
     map_list = []
-
-    print(f"\nBẮT ĐẦU ĐÁNH GIÁ {args.runs} LẦN \n")
     
     for run in range(args.runs):
         test_preds = []
