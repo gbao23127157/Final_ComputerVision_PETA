@@ -1,4 +1,5 @@
 import os
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -6,9 +7,14 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from data.dataset_loader import AlbumFeatureDataset
-from models.peta import PETAModel
 from utils.metrics import calculate_accuracy, calculate_map
 from utils.logger import setup_logger
+
+# Import 4 phiên bản mô hình
+from models.baseline import BaselineModel
+from models.peta import PETAModel as PETA
+from models.peta_clip import PETAModel as PETAClip
+from models.peta_cross import PETAModel as PETACross
 
 def fixed_sample_collate(batch):
     num_samples = 50 
@@ -110,7 +116,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
         val_acc = calculate_accuracy(val_preds, val_targets)
         val_map = calculate_map(val_preds, val_targets, num_classes)
 
-        logger.info(f"Test - Loss: {val_loss:.4f} | Accuracy: {val_acc:.4f} | mAP: {val_map:.4f}")
+        logger.info(f"Valid - Loss: {val_loss:.4f} | Accuracy: {val_acc:.4f} | mAP: {val_map:.4f}")
 
         scheduler.step()
         current_lr = optimizer.param_groups[0]['lr']
@@ -124,26 +130,57 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
     logger.info("Hoàn tất quá trình huấn luyện!")
 
 if __name__ == "__main__":
-    FEATURE_DIR = "./data/features"
+    # Thiết lập tham số dòng lệnh
+    parser = argparse.ArgumentParser(description="Huấn luyện các phiên bản mô hình PETA")
+    parser.add_argument('--mode', type=str, default='cross', 
+                        choices=['baseline', 'peta_base', 'peta_clip', 'peta_cross'],
+                        help='Chọn phiên bản mô hình để huấn luyện')
+    args = parser.parse_args()
+
     BATCH_SIZE = 16 
     NUM_EPOCHS = 30 
     NUM_CLASSES = 14
     LEARNING_RATE = 0.01
     NUM_SAMPLES = 50 
-    LOG_PATH = "../Docs/training_log.txt"
-    SAVE_PATH = "../Release/best_peta_model.pth"
+
+    os.makedirs("./weights", exist_ok=True)
+    os.makedirs("./logs", exist_ok=True)
+    LOG_PATH = f"./logs/training_log_{args.mode}.txt"
 
     logger = setup_logger(LOG_PATH)
-    logger.info("Khởi động huấn luyện PETA ")
+    logger.info(f"Khởi động huấn luyện CHẾ ĐỘ: {args.mode.upper()}")
+
+    # ĐIỀU PHỐI MÔ HÌNH VÀ DỮ LIỆU
+    if args.mode == 'baseline':
+        FEATURE_DIR = "./data/features/resnet"
+        SAVE_PATH = "./weights/baseline_weights.pth"
+        model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES)
+        
+    elif args.mode == 'peta_base':
+        FEATURE_DIR = "./data/features/resnet"
+        SAVE_PATH = "./weights/peta_base_weights.pth"
+        model = PETA(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, max_len=NUM_SAMPLES)
+        
+    elif args.mode == 'peta_clip':
+        FEATURE_DIR = "./data/features/clip"
+        SAVE_PATH = "./weights/peta_clip_weights.pth"
+        model = PETAClip(embed_dim=512, num_classes=NUM_CLASSES, num_heads=8, num_layers=2)
+        
+    elif args.mode == 'peta_cross':
+        FEATURE_DIR = "./data/features/clip"
+        SAVE_PATH = "./weights/peta_cross_weights.pth"
+        model = PETACross(embed_dim=512, num_classes=NUM_CLASSES, num_heads=8, num_layers=2)
+
+    logger.info(f"Sử dụng thư mục đặc trưng: {FEATURE_DIR}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
     
     DATASET_TXT = "./data/dataset.txt"
     TRAIN_TXT = "./data/train.txt" 
     TEST_TXT = "./data/test.txt"   
     
     class_to_idx = get_class_mapping(DATASET_TXT)
-    
     train_labels_dict = load_pec_split(TRAIN_TXT, class_to_idx)
     test_labels_dict = load_pec_split(TEST_TXT, class_to_idx)
     
@@ -155,24 +192,9 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=fixed_sample_collate)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
 
-    model = PETAModel(
-        embed_dim=512, 
-        num_classes=NUM_CLASSES, 
-        num_heads=8, 
-        num_layers=2, 
-        dropout=0.4
-    )
-    model = model.to(device)
-
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-    
-    # Dùng SGD kết hợp Momentum
     optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9, weight_decay=1e-3)
-    
-    # Giảm Learning Rate 10 lần ở các Epoch 15 và 25
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[15, 25], gamma=0.1)
-
-    os.makedirs("../Release", exist_ok=True)
 
     train_model(
         model=model,

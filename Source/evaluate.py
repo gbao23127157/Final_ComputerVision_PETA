@@ -1,12 +1,18 @@
 import os
+import argparse
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from data.dataset_loader import AlbumFeatureDataset
-from models.peta import PETAModel
 from utils.metrics import calculate_accuracy, calculate_map
+
+# Import 4 phiên bản mô hình
+from models.baseline import BaselineModel
+from models.peta import PETAModel as PETA
+from models.peta_clip import PETAModel as PETAClip
+from models.peta_cross import PETAModel as PETACross
 
 def fixed_sample_collate(batch):
     num_samples = 50 
@@ -52,57 +58,77 @@ def load_pec_split(split_txt_path, class_to_idx):
                 labels_dict[album_folder_name] = class_to_idx[class_name]
     return labels_dict
 
-def evaluate_model(num_runs=5):
+def evaluate_model():
+    parser = argparse.ArgumentParser(description="Đánh giá 4 phiên bản mô hình")
+    parser.add_argument('--mode', type=str, default='cross', 
+                        choices=['baseline', 'peta_base', 'peta_clip', 'peta_cross'],
+                        help='Chọn phiên bản mô hình để đánh giá')
+    parser.add_argument('--runs', type=int, default=5, 
+                        help='Số lần đánh giá để lấy trung bình')
+    args = parser.parse_args()
+
     DATASET_TXT = "./data/dataset.txt"
     TEST_TXT = "./data/test.txt"
-    FEATURE_DIR = "./data/features"
-    MODEL_WEIGHTS = "../Release/best_peta_model.pth" 
-    
     BATCH_SIZE = 16
     NUM_SAMPLES = 50 
 
-    print("Đang chuẩn bị dữ liệu Test...")
+    print("="*55)
+    print(f" ĐANG ĐÁNH GIÁ CHẾ ĐỘ: {args.mode.upper()}")
+    print("="*55)
+
     class_to_idx = get_class_mapping(DATASET_TXT)
     NUM_CLASSES = len(class_to_idx)
+
+    if args.mode == 'baseline':
+        FEATURE_DIR = "./data/features/resnet"
+        MODEL_WEIGHTS = "./weights/baseline_weights.pth"
+        model = BaselineModel(embed_dim=2048, num_classes=NUM_CLASSES)
+        
+    elif args.mode == 'peta_base':
+        FEATURE_DIR = "./data/features/resnet"
+        MODEL_WEIGHTS = "./weights/peta_base_weights.pth"
+        model = PETA(embed_dim=2048, num_classes=NUM_CLASSES, num_heads=8, num_layers=2, max_len=NUM_SAMPLES)
+        
+    elif args.mode == 'peta_clip':
+        FEATURE_DIR = "./data/features/clip"
+        MODEL_WEIGHTS = "./weights/peta_clip_weights.pth"
+        model = PETAClip(embed_dim=512, num_classes=NUM_CLASSES, num_heads=8, num_layers=2)
+        
+    elif args.mode == 'peta_cross':
+        FEATURE_DIR = "./data/features/clip"
+        MODEL_WEIGHTS = "./weights/peta_cross_weights.pth"
+        model = PETACross(embed_dim=512, num_classes=NUM_CLASSES, num_heads=8, num_layers=2)
+
+    print(f"-> Thư mục dữ liệu: {FEATURE_DIR}")
+    
     test_labels_dict = load_pec_split(TEST_TXT, class_to_idx)
     test_dataset = AlbumFeatureDataset(FEATURE_DIR, test_labels_dict)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=fixed_sample_collate)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # [ĐÃ CẬP NHẬT] 
-    # 1. embed_dim=512 (Chuẩn vector của CLIP)
-    # 2. Xóa max_len (Mô hình Tập hợp Ngữ nghĩa không cần Positional Encoding)
-    model = PETAModel(
-        embed_dim=512, 
-        num_classes=NUM_CLASSES, 
-        num_heads=8, 
-        num_layers=2, 
-        dropout=0.5
-    )
+    model.to(device)
     
     try:
         model.load_state_dict(torch.load(MODEL_WEIGHTS, map_location=device))
-        print("-> Đã tải thành công file trọng số best_peta_model.pth!")
+        print(f"-> Đã tải thành công trọng số: {MODEL_WEIGHTS}")
     except Exception as e:
         print(f"LỖI TẢI TRỌNG SỐ: {e}")
-        print("Gợi ý: Hãy chắc chắn bạn đã chạy lại file train.py để tạo ra trọng số (weights) mới khớp với kiến trúc CLIP 512 chiều.")
+        print(f"Hãy chạy lệnh `python train.py --mode {args.mode}` trước để tạo file trọng số.")
         return
 
-    model.to(device)
     model.eval()
     
     acc_list = []
     map_list = []
 
-    print(f"\nBẮT ĐẦU ĐÁNH GIÁ {num_runs} LẦN \n")
+    print(f"\nBẮT ĐẦU ĐÁNH GIÁ {args.runs} LẦN \n")
     
-    for run in range(num_runs):
+    for run in range(args.runs):
         test_preds = []
         test_targets = []
         
         with torch.no_grad():
-            for features, labels, masks in tqdm(test_loader, desc=f"Lần chạy {run+1}/{num_runs}", leave=False):
+            for features, labels, masks in tqdm(test_loader, desc=f"Lần chạy {run+1}/{args.runs}", leave=False):
                 features, masks = features.to(device), masks.to(device)
                 outputs = model(features, masks)
                 test_preds.append(outputs.cpu())
@@ -118,16 +144,15 @@ def evaluate_model(num_runs=5):
         map_list.append(test_map)
         print(f"   Hoàn thành Lần {run+1} | Accuracy: {test_acc:.2f}% | mAP: {test_map:.2f}%")
 
-    # Tính Mean và Std
     mean_acc, std_acc = np.mean(acc_list), np.std(acc_list)
     mean_map, std_map = np.mean(map_list), np.std(map_list)
 
     print("\n" + "="*55)
-    print(f" BÁO CÁO KẾT QUẢ PETA (TRUNG BÌNH SAU {num_runs} LẦN)")
+    print(f" BÁO CÁO KẾT QUẢ: {args.mode.upper()} (TRUNG BÌNH SAU {args.runs} LẦN)")
     print("="*55)
     print(f"  Accuracy : {mean_acc:.2f}% ± {std_acc:.2f}%")
     print(f"  mAP      : {mean_map:.2f}% ± {std_map:.2f}%")
     print("="*55)
 
 if __name__ == "__main__":
-    evaluate_model(num_runs=5)
+    evaluate_model()

@@ -12,16 +12,14 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
         return tensor
 
 class PETAModel(nn.Module):
-    def __init__(self, embed_dim=2048, num_classes=14, num_heads=8, num_layers=2, dropout=0.4, max_len=50):
+    def __init__(self, embed_dim=512, num_classes=14, num_heads=8, num_layers=2, dropout=0.4):
         super(PETAModel, self).__init__()
         self.embed_dim = embed_dim
         
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-        self.pos_embed = nn.Parameter(torch.zeros(1, max_len + 1, embed_dim))
         self.input_dropout = nn.Dropout(p=0.2)
         
         with torch.no_grad():
-            trunc_normal_(self.pos_embed, std=.02)
             trunc_normal_(self.cls_token, std=.02)
             
         self.transformer_layers = nn.ModuleList([
@@ -53,7 +51,8 @@ class PETAModel(nn.Module):
         cls_tokens = self.cls_token.expand(B, -1, -1)
         
         x = torch.cat((cls_tokens, features), dim=1) 
-        x = x + self.pos_embed[:, :(N + 1), :]
+        
+        # KHÔNG CỘNG Positional Encoding
         x = self.input_dropout(x)
         
         cls_mask = torch.ones(B, 1, dtype=mask.dtype, device=mask.device)
